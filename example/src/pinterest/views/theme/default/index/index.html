@@ -1,0 +1,16 @@
+{{template "main_header" .}}
+    <div id="container" class="transitions-enabled infinite-scroll clearfix gallery">
+    {{range .D.Body.images}}
+        <div class="box photo col2">
+            <a href="{{.Path}}{{.Name}}{{.Ext}}" rel="prettyPhoto[gallery2]"><img src="{{.Path}}{{.Name}}{{.Ext}}" /></a>
+        </div>
+    {{end}} 
+    </div> <!-- #container -->
+
+    <nav id="page-nav">
+        <a href="/page.html?page=2"></a>
+    </nav>
+    <script type="text/javascript" src="{{.D.Static}}add-on/masonry/jquery.masonry.min.js"></script>
+    <script type="text/javascript" src="{{.D.Static}}add-on/infinitescroll/jquery.infinitescroll.min.js"></script>
+    <script type="text/javascript" src="{{.D.Static}}add-on/prettyPhoto/jquery.prettyPhoto.js"></script>
+{{template "main_footer" .}}

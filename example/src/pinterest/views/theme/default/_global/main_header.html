@@ -1,0 +1,14 @@
+{{define "main_header"}}{{template "header" .}}
+    <div id="header">
+        <div id="logo">
+        </div>
+        <p id="intro">
+            {{.Config.Sitename}}
+        </p>
+        <div id="upload_block">
+            <form id="uploadForm" enctype="multipart/form-data" method="POST" action="upload">
+                <input type="file" name="file" id="file"/><br/>
+                <input type="submit" id="submit" value="上传" />
+            </form>
+        </div>
+    </div>{{end}}
