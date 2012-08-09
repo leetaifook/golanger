@@ -60,7 +60,7 @@ $(function() {
     });
 
     if (window["WebSocket"]) {
-        conn = new WebSocket("ws://{{ .D.Body.WebSocketHost }}/chat?email={{ .D.Body.Email }}");
+        conn = new WebSocket("ws://"+WebSocketHost+"/chat?email="+Email);
         conn.onopen = function() {};
 
         conn.onmessage = function(evt) {
