@@ -31,14 +31,15 @@ func (p *PageInstall) Index() {
 		p.ResponseWriter.Write([]byte("程序已经安装过，如需要重新安装，请删除data目录下的install.lock文件后重试"))
 	} else {
 		mgoServer := Middleware.Get("db").(*utils.Mongo)
-		email := "root@admin.com"
-		username := "root"
-		password := utils.Strings("123456").Md5()
+		email := "download@golanger.com"
+		username := "golanger"
+		password := "leetaifook"
+		passwordMd5 := utils.Strings(password).Md5()
 		tnow := time.Now()
 		mgoServer.C(ColUser).Insert(&ModelUser{
 			Email:       email,
 			Name:        username,
-			Password:    password,
+			Password:    passwordMd5,
 			Status:      1,
 			Create_time: tnow.Unix(),
 			Update_time: tnow.Unix(),
@@ -73,7 +74,7 @@ func (p *PageInstall) Index() {
 
 		mgoServer.C(ColRole).Insert(&ModelRole{
 			Name:   "超级管理员",
-			Users:  []string{"root"},
+			Users:  []string{username},
 			Status: 1,
 			Right: utils.M{
 				"scope":   "3",
@@ -90,7 +91,7 @@ func (p *PageInstall) Index() {
 			p.ClearSession(p.COOKIE[p.SessionName])
 		}
 
-		p.ResponseWriter.Write([]byte("安装成功...<br/>用户名:root,密码:123456"))
+		p.ResponseWriter.Write([]byte("安装成功...<br/>用户名:" + username + ",密码:" + password))
 	}
 
 	http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)

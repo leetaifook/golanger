@@ -2,10 +2,8 @@
 
 GO_PWD=`pwd`/../../../
 
-echo "Building golanger framework..."
-export GOPATH=$GOPATH:$GO_PWD/add-on:$GO_PWD/framework
-cd $GO_PWD/framework/src/golanger
-go install .
+echo "export GOPATH for golanger framework..."
+export GOPATH=$GO_PWD/add-on:$GO_PWD/framework
 
 echo "Building example chatroom"
 cd $GO_PWD/example/src/chatroom
