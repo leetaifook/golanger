@@ -3,7 +3,6 @@ package controllers
 import (
 	. "../models"
 	"encoding/json"
-	"fmt"
 	. "golanger/middleware"
 	"golanger/utils"
 	"time"
@@ -19,27 +18,24 @@ func init() {
 
 func (p *PageModule) Index() {
 	mgoServer := Middleware.Get("db").(*utils.Mongo)
+	cols := []ModelModule{}
+	colSelector := utils.M{}
 	colQuerier := utils.M{}
-	modules := []ModelModule{}
-	err := mgoServer.C(ColModule).Find(colQuerier).All(&modules)
-	if err != nil {
-		fmt.Println("获取模块信息失败！")
-		return
-	}
-	results := []utils.M{}
-	for _, module := range modules {
-		result := utils.M{}
-		result["name"] = module.Name
-		result["createtime"] = time.Unix(module.Createtime, 0).String()[0:19]
-		result["updatetime"] = time.Unix(module.Updatetime, 0).String()[0:19]
-		if module.Status == 1 {
-			result["status"] = "停用"
-		} else if module.Status == 0 {
-			result["status"] = "启用"
+	colSorter := []string{"-order", "-create_time"}
+
+	query := mgoServer.C(ColModule).Find(colQuerier).Select(colSelector).Sort(colSorter...)
+	iter := query.Iter()
+	for {
+		col := ModelModule{}
+		b := iter.Next(&col)
+		if b != true {
+			break
 		}
-		results = append(results, result)
+
+		cols = append(cols, col)
 	}
-	p.Body = results
+
+	p.Body = cols
 }
 
 // Create Module
@@ -52,33 +48,26 @@ func (p *PageModule) CreateModule() {
 			}
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*utils.Mongo)
-
-			colQuerier := utils.M{}
-			modules := []ModelModule{}
-			err := mgoServer.C(ColModule).Find(colQuerier).All(&modules)
+			modulename := p.POST["modulename"]
+			modulepath := p.POST["modulepath"]
+			colQuerier := utils.M{"path": modulepath, "name": modulename}
+			cnt, err := mgoServer.C(ColModule).Find(colQuerier).Count()
 			if err != nil {
 				m["status"] = 0
 				m["message"] = "获取用户信息失败！"
-				return
+			} else if cnt != 0 {
+				m["status"] = 0
+				m["message"] = "路径相同的模块已存在"
+			} else {
+				tnow := time.Now()
+				mgoServer.C(ColModule).Insert(&ModelModule{
+					Name:        modulename,
+					Path:        modulepath,
+					Status:      1,
+					Create_time: tnow.Unix(),
+					Update_time: tnow.Unix(),
+				})
 			}
-			modulename := p.POST["modulename"]
-
-			for _, module := range modules {
-				if modulename == module.Name {
-					m["status"] = 0
-					m["message"] = "该模块已存在"
-					ret, _ := json.Marshal(m)
-					p.ResponseWriter.Write(ret)
-					return
-				}
-			}
-			tnow := time.Now()
-			mgoServer.C(ColModule).Insert(&ModelModule{
-				Name:       modulename,
-				Status:     1,
-				Createtime: tnow.Unix(),
-				Updatetime: tnow.Unix(),
-			})
 
 			ret, _ := json.Marshal(m)
 			p.ResponseWriter.Write(ret)
@@ -94,13 +83,21 @@ func (p *PageModule) DeleteModule() {
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*utils.Mongo)
 			modulename := p.POST["modulename"]
-			colQuerier, m := utils.M{"name": modulename}, utils.M{"message": ""}
+			modulepath := p.POST["modulepath"]
+			colQuerier := utils.M{"path": modulepath, "name": modulename}
+			m := utils.M{
+				"status":  "1",
+				"message": "",
+			}
+
 			err := mgoServer.C(ColModule).Remove(colQuerier)
 			if err != nil {
+				m["status"] = "0"
 				m["message"] = "删除模块失败！"
 			} else {
 				m["message"] = "成功删除模块！"
 			}
+
 			ret, _ := json.Marshal(m)
 			p.ResponseWriter.Write(ret)
 		}
@@ -112,33 +109,39 @@ func (p *PageModule) StopModule() {
 	if p.Request.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
-			m := utils.M{"message": ""}
-			if modulename, ok := p.POST["modulename"]; ok {
+			m := utils.M{
+				"status":  "1",
+				"message": "",
+			}
+			if modulepath, ok := p.POST["modulepath"]; ok {
 				mgoServer := Middleware.Get("db").(*utils.Mongo)
-				colQuerier := utils.M{"name": modulename}
-
-				result := utils.M{}
-				err := mgoServer.C(ColModule).Find(colQuerier).One(&result)
+				col := ModelUser{}
+				colQuerier := utils.M{"path": modulepath}
+				err := mgoServer.C(ColModule).Find(colQuerier).One(&col)
 				if err != nil {
+					m["status"] = "0"
 					m["message"] = "模块不存在"
-				}
-
-				stop := utils.M{}
-				if result["status"] == 1 {
-					stop["$set"] = utils.M{"status": 0}
 				} else {
-					stop["$set"] = utils.M{"status": 1}
-				}
+					change := utils.M{}
+					if col.Status == 1 {
+						change["$set"] = utils.M{"status": 0}
+					} else {
+						change["$set"] = utils.M{"status": 1}
+					}
 
-				err = mgoServer.C(ColModule).Update(colQuerier, stop)
-				if err != nil {
-					m["message"] = "停用模块失败！"
-				} else {
-					m["message"] = "成功停用模块！"
+					err = mgoServer.C(ColModule).Update(colQuerier, change)
+					if err != nil {
+						m["status"] = "0"
+						m["message"] = "停用模块失败！"
+					} else {
+						m["message"] = "成功停用模块！"
+					}
 				}
 			} else {
+				m["status"] = "0"
 				m["message"] = "请选择要停用的模块！"
 			}
+
 			ret, _ := json.Marshal(m)
 			p.ResponseWriter.Write(ret)
 		}

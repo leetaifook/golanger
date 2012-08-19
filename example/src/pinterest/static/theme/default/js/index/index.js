@@ -58,5 +58,34 @@ $(function() {
             alert("请选择图片进行上传!");
             return false;
         }
+
+        var classId = $("#class_select").val();
+        if (classId == "0") {
+            alert("请选择图片种类!");
+            return false;
+        }
+    });
+
+    $(".expand").click(function(){
+        if($("#upload").html()=="+"){
+            $("#tip").hide();
+            $("#uploadForm").css({"display":"inline-block"});
+            $("#upload_block").css({"border-color":"#00a0de","color":"#00a0de"});
+            $("#upload").html("-");
+        }else{
+            $("#uploadForm").hide();
+            $("#tip").css({"display":"inline-block"});
+            $("#upload_block").css({"border-color":"#D8D5D2","color":"#858585"});
+            $("#upload").html("+");
+            $("#file").val("");
+        }
+    });
+
+    $("#file").change(function(){
+        if($("#file").val()!=""){
+            $("#filee").html($("#file").val());
+        }else{
+            $("#filee").html("选择文件");
+        }
     });
 });

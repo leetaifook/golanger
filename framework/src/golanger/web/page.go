@@ -1,6 +1,8 @@
 package web
 
 import (
+	"fmt"
+	"strings"
 	"text/template"
 )
 
@@ -9,6 +11,8 @@ type Page struct {
 	DefaultController   interface{}
 	NotFoundtController interface{}
 	Controller          map[string]interface{}
+	CurrentController   string
+	CurrentAction       string
 	Template            string
 	TemplateFunc        template.FuncMap
 	Config
@@ -33,6 +37,7 @@ func (p *Page) Reset() {
 		Css:           map[string]string{},
 		Js:            map[string]string{},
 		Img:           map[string]string{},
+		Func:          template.FuncMap{},
 	}
 
 	if okCss {
@@ -75,11 +80,32 @@ func (p *Page) RegisterController(relUrlPath string, i interface{}) *Page {
 }
 
 func (p *Page) GetController(urlPath string) (i interface{}) {
-	relUrlPath := urlPath[len(p.Site.Root):]
+	var relUrlPath string
+	if strings.HasPrefix(urlPath, p.Site.Root) {
+		relUrlPath = urlPath[len(p.Site.Root):]
+	} else {
+		relUrlPath = urlPath
+	}
+
 	i, ok := p.Controller[relUrlPath]
 	if !ok {
 		i = p.NotFoundtController
 	}
 
 	return
+}
+
+func (p *Page) AddTemplateFunc(name string, i interface{}) {
+	_, ok := p.TemplateFunc[name]
+	if !ok {
+		p.TemplateFunc[name] = i
+	} else {
+		fmt.Println("func:" + name + " be added,do not reepeat to add")
+	}
+}
+
+func (p *Page) DelTemplateFunc(name string) {
+	if _, ok := p.TemplateFunc[name]; ok {
+		delete(p.TemplateFunc, name)
+	}
 }

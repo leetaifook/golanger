@@ -1,6 +1,11 @@
 package web
 
+import (
+	"text/template"
+)
+
 type Document struct {
+	Close              bool
 	GenerateHtml       bool
 	Static             string
 	Theme              string
@@ -14,6 +19,7 @@ type Document struct {
 	IndexCssFile       string
 	IndexJsFile        string
 	Hide               bool
+	Func               template.FuncMap
 	Title              string
 	Subtitle           string
 	Header             string

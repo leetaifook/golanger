@@ -8,6 +8,7 @@
 	  		<thead>
 		    	<tr>
 		      		<th>模块名</th>
+		      		<th>模块路径</th>
 		     		<th>创建时间</th>
 		     		<th>最后更新</th>
 		     		<th>操作</th>
@@ -16,12 +17,13 @@
 	  		<tbody>
 	  			{{range .D.Body}}
 	    		<tr> 
-	      			<td id="modulename">{{.name}}</td>
-	      			<td>{{.createtime}}</td>
-	      			<td>{{.updatetime}}</td>
+	      			<td>{{.Name}}</td>
+	      			<td>{{.Path}}</td>
+	      			<td>{{GetTimeToStr .Create_time}}</td>
+	      			<td>{{GetTimeToStr .Update_time}}</td>
 	      			<td>
-	      				<input class="btn btn-danger" value="删除" type="button" id="module_delete" value="删除">
-	      				<input class="btn btn-warning" type="button" id="module_stop" value="{{.status}}">
+	      				<input class="btn btn-danger" value="删除" type="button" op="module_delete" value="删除">
+	      				<input class="btn btn-warning" type="button" op="module_stop" value="{{if .Status}}启用{{else}}停用{{end}}">
 	      			</td>
 	    		</tr>
 
@@ -63,7 +65,7 @@
 	<div class="hero-unit">
 		<div class="row-fluid">
 			<div class="span12">
-	            <div class="form-horizontal" id="create">
+	            <form class="form-horizontal" id="create">
 	                <fieldset>
 	                    <div class="control-group">
 	                        <label class="control-label" for="modulename">模块名</label>
@@ -72,12 +74,19 @@
 	                            <span class="help-inline" style="display:none"></span>
 	                        </div>
 	                    </div>
+	                    <div class="control-group">
+	                        <label class="control-label" for="modulepath">模块名</label>
+	                        <div class="controls">
+	                            <input class="input-large" name="modulepath" type="text" placeholder="模块路径">
+	                            <span class="help-inline" style="display:none"></span>
+	                        </div>
+	                    </div>
 	                    <div class="form-actions">
 	                        <button type="button" id="btn_create" class="btn btn-large btn-primary">创建</button>
 	                        <button type="reset" id="btn_cancel_create" class="btn btn-large btn-inverse">取消</button>
 	                    </div>
 	                </fieldset>
-	            </div>
+	            </form>
 	        </div>
 		</div>
 	</div>

@@ -20,12 +20,17 @@
                 </div>
                 <a class="brand" href="{{.Siteroot}}index.html">{{.Config.Sitename}}</a>
                 <div class="nav-collapse">
-                    <ul class="nav">
-                        <li><a href="{{.Siteroot}}index.html">首页</a></li>
-                        <li><a href="{{.Siteroot}}user/index.html">用户管理</a></li>
-                        <li><a href="{{.Siteroot}}module/index.html">模块管理</a></li>
+                    <ul class="nav">{{$siteroot := .Siteroot}}
+                        <li><a href="{{$siteroot}}">首页</a></li>
+                        {{range .S.modules}}
+                        <li><a href="{{$siteroot}}{{.Path}}">{{.Name}}</a></li>
+                        {{end}}
                     </ul>
                 </div><!-- /.nav-collapse -->
             </div>
         </div>
+    </div>
+    <div id="message" class="alert" style="display:none">
+        <button type="button" class="close" data-dismiss="alert">×</button>
+        <span></span>
     </div>{{end}}

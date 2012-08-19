@@ -18,16 +18,16 @@ type Base struct {
 	SESSION        map[string]interface{}
 	MAX_FORM_SIZE  int64
 	SupportSession bool
-	sessionName    string
-	session        map[string][2]map[string]interface{}
+	SessionName    string
+	Session        map[string][2]map[string]interface{}
 	Request        *http.Request
 	ResponseWriter http.ResponseWriter
 	Cookie         []*http.Cookie
 }
 
 func (b *Base) Init() *Base {
-	if b.session == nil {
-		b.session = map[string][2]map[string]interface{}{}
+	if b.Session == nil {
+		b.Session = map[string][2]map[string]interface{}{}
 	}
 
 	b.GET = func() map[string]string {
@@ -70,23 +70,23 @@ func (b *Base) Init() *Base {
 		var s map[string]interface{}
 
 		if b.SupportSession {
-			if b.sessionName == "" {
-				b.sessionName = "GoLangerSession"
+			if b.SessionName == "" {
+				b.SessionName = "GoLangerSession"
 			}
 
 			timenow := time.Now()
 
 			go func() {
-				for sessionSign, _ := range b.session {
-					if b.session[sessionSign][0]["expires"].(int64) <= timenow.Unix() {
-						delete(b.session, sessionSign)
-						b.SetCookie(b.sessionName, sessionSign, -3600)
+				for sessionSign, _ := range b.Session {
+					if b.Session[sessionSign][0]["expires"].(int64) <= timenow.Unix() {
+						delete(b.Session, sessionSign)
+						b.SetCookie(b.SessionName, sessionSign, -3600)
 					}
 				}
 			}()
 
 			var sessionSign string
-			if sign, ok := b.COOKIE[b.sessionName]; !ok {
+			if sign, ok := b.COOKIE[b.SessionName]; !ok {
 				var userAgent = b.Request.Header.Get("User-Agent")
 				var remoteAddr = b.Request.RemoteAddr
 				var timeNano = timenow.UnixNano()
@@ -95,8 +95,8 @@ func (b *Base) Init() *Base {
 				io.WriteString(m, strconv.FormatInt(timeNano, 10)+remoteAddr+userAgent+"author:李伟-LiWei-leetaifook")
 				sessionSign = fmt.Sprintf("%x", m.Sum(nil))
 				var expires int64 = 360
-				b.SetCookie(b.sessionName, sessionSign, expires)
-				b.session[sessionSign] = [2]map[string]interface{}{
+				b.SetCookie(b.SessionName, sessionSign, expires, "/")
+				b.Session[sessionSign] = [2]map[string]interface{}{
 					map[string]interface{}{
 						"expires": timenow.Unix() + expires,
 					},
@@ -104,9 +104,9 @@ func (b *Base) Init() *Base {
 				}
 			} else {
 				sessionSign = sign
-				if _, ok := b.session[sessionSign]; !ok {
+				if _, ok := b.Session[sessionSign]; !ok {
 					var expires int64 = 3600
-					b.session[sessionSign] = [2]map[string]interface{}{
+					b.Session[sessionSign] = [2]map[string]interface{}{
 						map[string]interface{}{
 							"expires": timenow.Unix() + expires,
 						},
@@ -115,15 +115,21 @@ func (b *Base) Init() *Base {
 				}
 			}
 
-			s = b.session[sessionSign][1]
-		} else {
-			s = map[string]interface{}{}
+			s = b.Session[sessionSign][1]
 		}
 
 		return s
 	}()
 
 	return b
+}
+
+func (b *Base) ClearSession(sessionSign string) {
+	if sessionSign == "" {
+		b.Session = map[string][2]map[string]interface{}{}
+	} else {
+		delete(b.Session, sessionSign)
+	}
 }
 
 /*

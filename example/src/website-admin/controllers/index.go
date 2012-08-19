@@ -37,12 +37,12 @@ func (p *PageIndex) Login() {
 			password := p.POST["password"]
 			passwordMd5 := utils.Strings(password).Md5()
 
-			colQuerier := utils.M{"name": username, "status": 1}
+			colQuerier := utils.M{"name": username, "status": 1, "delete": 0}
 			colSelecter := utils.M{"password": 1}
 			col := ModelUser{}
 			var jres []byte
 			err := mgoServer.C(ColUser).Find(colQuerier).Select(colSelecter).One(&col)
-			if err != nil {
+			if err != nil || col.Password == "" {
 				m["status"] = -1
 				m["message"] = "无此用户"
 			} else {
@@ -68,7 +68,10 @@ func (p *PageIndex) Login() {
 }
 
 func (p *PageIndex) Logout() {
-	delete(p.SESSION, p.M["SESSION_UNAME"].(string))
-	delete(p.SESSION, p.M["SESSION_UKEY"].(string))
+	sessionSign := p.COOKIE[p.SessionName]
+	if sessionSign != "" {
+		p.ClearSession(p.COOKIE[p.SessionName])
+	}
+
 	http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"./controllers"
+	_ "./helper"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -164,22 +165,24 @@ func startApp() {
 			controllers.Page.Document.GenerateHtml = true
 		}
 
-		pageController := controllers.Page.GetController(urlPath)
+		controllers.Page.CurrentController = urlPath[len(controllers.Page.Site.Root):]
+		controllers.Page.CurrentAction = methodName
+		pageController := controllers.Page.GetController(controllers.Page.CurrentController)
 		rv := reflect.ValueOf(pageController)
 		rt := rv.Type()
 		if _, ok := rt.MethodByName("Init"); ok {
 			rv.MethodByName("Init").Call([]reflect.Value{})
 		}
 
-		if _, ok := rt.MethodByName(methodName); ok && methodName != "Init" {
-			rv.MethodByName(methodName).Call([]reflect.Value{})
+		if _, ok := rt.MethodByName(controllers.Page.CurrentAction); ok && controllers.Page.CurrentAction != "Init" && controllers.Page.Document.Close == false {
+			rv.MethodByName(controllers.Page.CurrentAction).Call([]reflect.Value{})
 		} else {
 			if _, ok := pageController.(*controllers.Page404); !ok {
 				controllers.Page.NotFoundtController.(*controllers.Page404).Init()
 			}
 		}
 
-		if controllers.Page.Document.Hide == false {
+		if controllers.Page.Document.Close == false && controllers.Page.Document.Hide == false {
 			globalTemplate := template.New("globalTpl").Funcs(controllers.Page.TemplateFunc)
 			if t, _ := globalTemplate.ParseGlob(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory + controllers.Page.Config.TemplateGlobalFile); t != nil {
 				globalTemplate = t
@@ -193,7 +196,6 @@ func startApp() {
 					"S":        controllers.Page.Base.SESSION,
 					"Siteroot": controllers.Page.Site.Root,
 					"Version":  controllers.Page.Site.Version,
-					"Func":     controllers.Page.TemplateFunc,
 					"Template": controllers.Page.Template,
 					"D":        controllers.Page.Document,
 					"Config":   controllers.Page.Config.M,

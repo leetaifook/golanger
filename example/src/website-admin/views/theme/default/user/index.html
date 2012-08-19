@@ -17,14 +17,14 @@
 	  		<tbody>
 	  			{{range .D.Body}}
 	    		<tr> 
-	      			<td id="username">{{.name}}</td>
-	      			<td>{{.email}}</td>
-	      			<td>{{.createtime}}</td>
-	      			<td>{{.updatetime}}</td>
+	      			<td>{{.Name}}</td>
+	      			<td>{{.Email}}</td>
+	      			<td>{{GetTimeToStr .Create_time}}</td>
+	      			<td>{{GetTimeToStr .Update_time}}</td>
 	      			<td>
-	      				<input class="btn btn-danger" type="button" id="user_delete" value="删除">
-	      				<input class="btn btn-info" type="button" id="user_update" value="修改">
-	      				<input class="btn btn-warning" type="button" id="user_stop" value="{{.status}}">
+	      				<input class="btn btn-danger" type="button" op="user_delete" value="删除">
+	      				<input class="btn btn-info" type="button" op="user_update" value="修改">
+	      				<input class="btn btn-warning" type="button" op="user_stop" value="{{if .Status}}停用{{else}}启用{{end}}">
 	      			</td>
 	    		</tr>
 	    		{{end}}
@@ -53,7 +53,7 @@
 	<div class="hero-unit">
 		<div class="row-fluid">
 			<div class="span12">
-	            <div class="form-horizontal" id="update">
+	            <form class="form-horizontal" id="update">
 	                <fieldset id="fieldset">
 	                    <div class="control-group">
 	                        <label class="control-label" for="email">邮&nbsp&nbsp&nbsp箱</label>
@@ -74,7 +74,7 @@
 	                        <button type="reset" id="btn_cancel" class="btn btn-large btn-inverse">取消</button>
 	                    </div>
 	                </fieldset>
-	            </div>
+	            </form>
 	        </div>
 		</div>
 	</div>
@@ -101,7 +101,7 @@
 	<div class="hero-unit">
 		<div class="row-fluid">
 			<div class="span12">
-	            <div class="form-horizontal" id="create">
+	            <form class="form-horizontal" id="create">
 	                <fieldset>
 	                    <div class="control-group">
 	                        <label class="control-label" for="username">用户名</label>
@@ -126,10 +126,10 @@
 	                    </div>
 	                    <div class="form-actions">
 	                        <button type="button" id="btn_create" class="btn btn-large btn-primary">创建</button>
-	                        <button type="reset" id="btn_cancel_create" class="btn btn-large btn-inverse">取消</button>
+	                        <button type="reset" id="btn_cancel_create" class="btn btn-large btn-inverse">重置</button>
 	                    </div>
 	                </fieldset>
-	            </div>
+	            </form>
 	        </div>
 		</div>
 	</div>

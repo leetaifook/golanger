@@ -156,57 +156,22 @@ blockquote {
 .clearfix:after { clear: both; }
 .clearfix { zoom: 1; }
 
-/**** Headed  ****/
-#header{
-    width:100%;
 
-    position: relative;
-
-    background: url(../../img/global/bg.jpg);
-    overflow:hidden;
-    zoom:1;
+.right{
+    float: right;
+    margin-left: 1em;
 }
-
-#logo{
+.left{
     float: left;
-    height: 47px;
-    width: 300px;
-    display: inline-block;
-    padding:20px;
-
-    background: url(../../img/global/logo.png);
-    background-position: center;
-    background-repeat: no-repeat;
 }
 
-#intro{
-    float: left;
-    width: 720px;
-    display: inline-block;
-    padding:20px;
-    margin-left: 5px;
-
-    text-indent: 2em;
-    border-top: 4px solid #333;
+ul li{
+  list-style:none
 }
 
-#upload_block{
-    float: left;
-    display: inline-block;
-    padding: 20px;
-    margin-left: 5px;
-
-    border-top: 4px solid #333;
+a{
+  color:inherit;
 }
-
-#upload_block #file{
-    position: absolute;
-    opacity: 100;
-}
-
-#upload_block #upload{
-    font-size: 20px;
-    font-weight: bold;
-    color: #00a0de;
-    line-height: 1.2em;
-}
+a:hover{
+  color: #00a0de;
+};

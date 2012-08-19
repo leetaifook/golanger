@@ -171,7 +171,7 @@ func startApp() {
 			rv.MethodByName("Init").Call([]reflect.Value{})
 		}
 
-		if _, ok := rt.MethodByName(methodName); ok && methodName != "Init" {
+		if _, ok := rt.MethodByName(methodName); ok && methodName != "Init" && controllers.Page.Document.Close == false {
 			rv.MethodByName(methodName).Call([]reflect.Value{})
 		} else {
 			if _, ok := pageController.(*controllers.Page404); !ok {
@@ -179,7 +179,7 @@ func startApp() {
 			}
 		}
 
-		if controllers.Page.Document.Hide == false {
+		if controllers.Page.Document.Close == false && controllers.Page.Document.Hide == false {
 			globalTemplate := template.New("globalTpl").Funcs(controllers.Page.TemplateFunc)
 			if t, _ := globalTemplate.ParseGlob(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory + controllers.Page.Config.TemplateGlobalFile); t != nil {
 				globalTemplate = t

@@ -26,7 +26,17 @@ func init() {
 
 func (p *PageIndex) Index() {
 	body := utils.M{}
+	body["classes"], _ = GetClasses()
 	body["images"], _ = GetImagesLists()
+
+	var classId = int64(0)
+	sClassId, ok := p.GET["classId"]
+	if ok {
+		classId, _ = strconv.ParseInt(sClassId, 0, 64)
+		body["images"], _ = GetImagesListsWithClassId(classId)
+	}
+	body["current"] = classId
+
 	p.Body = body
 }
 
@@ -44,19 +54,38 @@ func (p *PageIndex) Upload() {
 			return
 		}
 
+		iClass, _ := strconv.Atoi(p.POST["class"])
+		class := int64(iClass)
+
 		fileExt := strings.ToLower(path.Ext(fileHeader.Filename))
 		fileContent, _ := ioutil.ReadAll(file)
 		ioutil.WriteFile(filePath+fileName+fileExt, fileContent, 0777)
 
 		go SaveImages(Images{
+			Class:      class,
 			Name:       fileName,
 			Ext:        fileExt,
 			Path:       filePath[1:],
+			Status:     1,
 			CreateTime: time.Now().Unix(),
 		})
 
 		http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
 	}
+}
+
+func (p *PageIndex) Report() {
+	id, ok := p.GET["id"]
+	if ok {
+		idValue, _ := strconv.Atoi(id)
+		image, err := GetImage(idValue)
+		if err == nil {
+			image.Status = 0
+			go SaveImages(*image)
+		}
+	}
+
+	http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
 }
 
 func (p *PageIndex) Page() {

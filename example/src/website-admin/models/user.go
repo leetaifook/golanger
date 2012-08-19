@@ -7,27 +7,28 @@ import (
 var (
 	ColUser = utils.M{
 		"name":  "user",
-		"index": []string{"email", "name", "password", "status", "createtime"},
+		"index": []string{"name", "email", "status", "delete"},
 	}
 )
 
 /*
 用户表
-user
-{
-    "email": <email>,
+user {
     "name" : <name>,
+    "email" : <email>,
     "password" : <password>,
     "status" : <status>,
-    "createtime" : <createtime>,
-    "updatetime" : <updatetime>
+    "delete" : <delete>,
+    "create_time" : <create_time>,
+    "update_time" : <update_time>,
 }
 */
 type ModelUser struct {
-	Email      string
-	Name       string
-	Password   string
-	Status     byte
-	Createtime int64
-	Updatetime int64
+	Name        string
+	Email       string
+	Password    string
+	Status      byte
+	Delete      byte
+	Create_time int64
+	Update_time int64
 }
