@@ -1,5 +1,6 @@
 user {
     "name" : <name>,
+    "email" : <email>,
     "password" : <password>,
     "status" : <status>,
     "delete" : <delete>,
@@ -18,15 +19,16 @@ module {
 
 role {
     "name" : <name>,
-    "users" : {
-        "uname" : "user_name",
-    },
-    right : {
-        "scope" : <scope>,// 0=>action,1=>module,2=>app,3=>site
-        "m_id" : <module_id>,
-        "actions" : [<action_name>,...],
-    },
+    "users" : []<user_name>,
     "status" : <status>,
+    "right" : {
+        "scope" : <scope>,// 0=>action,1=>module,2=>app,3=>site
+        "modules" : []{
+            "module":<module_path>,
+            "actions" : []<action_name>,
+        }
+    },
+    "delete" : <delete>,
     "create_time" : <create_time>,
     "update_time" : <update_time>,
 }
