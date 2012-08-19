@@ -12,6 +12,11 @@ type PageIndex struct {
 	*App
 }
 
+func (p *PageIndex) Init() {
+	p.OffRight = true
+	p.App.Init()
+}
+
 func init() {
 	Page.RegisterController("index/", &PageIndex{Page})
 }

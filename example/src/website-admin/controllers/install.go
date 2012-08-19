@@ -20,6 +20,7 @@ func init() {
 
 func (p *PageInstall) Init() {
 	p.OffLogin = true
+	p.OffRight = true
 	p.App.Init()
 }
 
@@ -75,19 +76,24 @@ func (p *PageInstall) Index() {
 			Users:  []string{"root"},
 			Status: 1,
 			Right: utils.M{
-				"scope":   3,
+				"scope":   "3",
 				"modules": []utils.M{},
 			},
 			Create_time: tnow.Unix(),
 			Update_time: tnow.Unix(),
 		})
 
-		ioutil.WriteFile(fileInstallLock, "", 0777)
+		ioutil.WriteFile(fileInstallLock, []byte("installed"), 0777)
 
-		p.ResponseWriter.Write([]byte("安装成功...<br/>用户名:root,密码:123456<br/>请修改目录config下的site.yaml文件,将权限控制配置项开启，如:\"CheckRight : true\""))
+		sessionSign := p.COOKIE[p.SessionName]
+		if sessionSign != "" {
+			p.ClearSession(p.COOKIE[p.SessionName])
+		}
 
-		http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)
+		p.ResponseWriter.Write([]byte("安装成功...<br/>用户名:root,密码:123456"))
 	}
+
+	http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)
 
 	p.Close = true
 }

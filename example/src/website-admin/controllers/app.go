@@ -33,7 +33,7 @@ func (a *App) Init() {
 			a.getRole()
 			a.getModule(false)
 
-			if a.CurrentController != a.Config.IndexDirectory {
+			if !a.OffRight {
 				a.checkRight()
 			}
 		} else {

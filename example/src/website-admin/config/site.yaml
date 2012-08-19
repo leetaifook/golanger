@@ -52,7 +52,7 @@ SiteRoot                 : "/"
 Environment              : {
     #是否需要开启权限检查
     # *此配置项，建议初次按照或者在需要调试的时候关闭
-    CheckRight : false,
+    CheckRight : true,
 }
 #数据库地址
 Database                 : {
