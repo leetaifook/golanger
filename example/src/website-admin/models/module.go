@@ -25,7 +25,7 @@ module {
 type ModelModule struct {
 	Name        string
 	Path        string
-	Order       string
+	Order       int64
 	Status      byte
 	Create_time int64
 	Update_time int64

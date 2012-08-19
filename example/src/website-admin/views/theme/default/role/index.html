@@ -20,11 +20,11 @@
                     <td data="{{call $join .Users `,`}}">{{len .Users}}</td>
                     <td data="{{.Right.scope}}">{{call $getScopeText .Right.scope}}</td>
                     <td>
-                        <input class="btn btn-success" type="button" op="role_show_users" value="查看用户">
+                        <input class="btn btn-success" type="button" op="role_show_users" value="设置用户">
                         <input class="btn btn-primary" type="button" op="right" modules='{{with .Right.modules}}{{call $jsonMarshal .}}{{end}}' value="设置权限">
                         <input class="btn btn-info" type="button" op="role_update" value="修改">
                         <input class="btn btn-danger" type="button" op="role_delete" value="删除">
-                        <input class="btn btn-warning" type="button" op="role_stop" value="{{if .Status}}启用{{else}}停用{{end}}">
+                        <input class="btn btn-warning" type="button" op="role_stop" value="{{if .Status}}停用{{else}}启用{{end}}">
                     </td>
                 </tr>
                 {{end}}

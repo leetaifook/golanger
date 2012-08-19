@@ -12,4 +12,4 @@ cd $GO_PWD/example/src/website-admin
 rm website-admin
 go build .
 
-$GO_PWD/example/src/website-admin/todo-orm -addr=:8084
+$GO_PWD/example/src/website-admin/website-admin -addr=:8084

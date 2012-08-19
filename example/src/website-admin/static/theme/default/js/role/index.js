@@ -71,7 +71,7 @@ $(function() {
         var name = col.eq(0).text();
         var users = col.eq(1).attr("data").split(",");
         var h3 = $("#usersModal .modal-header h3");
-        h3.html("查看拥有<" + name + ">角色的用户");
+        h3.html("设置拥有<" + name + ">角色的用户");
         //$("#add_role_user").val(0);
         $("#add_role_user").val(users);
         $("#add_role_user").trigger("liszt:updated");
