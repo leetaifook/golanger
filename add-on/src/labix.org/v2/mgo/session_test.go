@@ -28,9 +28,9 @@ package mgo_test
 
 import (
 	"errors"
-	. "launchpad.net/gocheck"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
+	. "launchpad.net/gocheck"
 	"math"
 	"sort"
 	"strconv"
@@ -316,6 +316,34 @@ func (s *S) TestUpdate(c *C) {
 	c.Assert(err, Equals, mgo.ErrNotFound)
 }
 
+func (s *S) TestUpdateId(c *C) {
+	session, err := mgo.Dial("localhost:40001")
+	c.Assert(err, IsNil)
+	defer session.Close()
+
+	coll := session.DB("mydb").C("mycoll")
+
+	ns := []int{40, 41, 42, 43, 44, 45, 46}
+	for _, n := range ns {
+		err := coll.Insert(M{"_id": n, "n": n})
+		c.Assert(err, IsNil)
+	}
+
+	err = coll.UpdateId(42, M{"$inc": M{"n": 1}})
+	c.Assert(err, IsNil)
+
+	result := make(M)
+	err = coll.FindId(42).One(result)
+	c.Assert(err, IsNil)
+	c.Assert(result["n"], Equals, 43)
+
+	err = coll.UpdateId(47, M{"k": 47, "n": 47})
+	c.Assert(err, Equals, mgo.ErrNotFound)
+
+	err = coll.FindId(47).One(result)
+	c.Assert(err, Equals, mgo.ErrNotFound)
+}
+
 func (s *S) TestUpdateNil(c *C) {
 	session, err := mgo.Dial("localhost:40001")
 	c.Assert(err, IsNil)
@@ -396,6 +424,39 @@ func (s *S) TestUpsert(c *C) {
 	c.Assert(result["n"], Equals, 48)
 }
 
+func (s *S) TestUpsertId(c *C) {
+	session, err := mgo.Dial("localhost:40001")
+	c.Assert(err, IsNil)
+	defer session.Close()
+
+	coll := session.DB("mydb").C("mycoll")
+
+	ns := []int{40, 41, 42, 43, 44, 45, 46}
+	for _, n := range ns {
+		err := coll.Insert(M{"_id": n, "n": n})
+		c.Assert(err, IsNil)
+	}
+
+	info, err := coll.UpsertId(42, M{"n": 24})
+	c.Assert(err, IsNil)
+	c.Assert(info.Updated, Equals, 1)
+	c.Assert(info.UpsertedId, IsNil)
+
+	result := M{}
+	err = coll.FindId(42).One(result)
+	c.Assert(err, IsNil)
+	c.Assert(result["n"], Equals, 24)
+
+	info, err = coll.UpsertId(47, M{"_id": 47, "n": 47})
+	c.Assert(err, IsNil)
+	c.Assert(info.Updated, Equals, 0)
+	c.Assert(info.UpsertedId, IsNil)
+
+	err = coll.FindId(47).One(result)
+	c.Assert(err, IsNil)
+	c.Assert(result["n"], Equals, 47)
+}
+
 func (s *S) TestUpdateAll(c *C) {
 	session, err := mgo.Dial("localhost:40001")
 	c.Assert(err, IsNil)
@@ -458,6 +519,24 @@ func (s *S) TestRemove(c *C) {
 	err = coll.Find(M{"n": 44}).One(result)
 	c.Assert(err, IsNil)
 	c.Assert(result.N, Equals, 44)
+}
+
+func (s *S) TestRemoveId(c *C) {
+	session, err := mgo.Dial("localhost:40001")
+	c.Assert(err, IsNil)
+	defer session.Close()
+
+	coll := session.DB("mydb").C("mycoll")
+
+	err = coll.Insert(M{"_id": 40}, M{"_id": 41}, M{"_id": 42})
+	c.Assert(err, IsNil)
+
+	err = coll.RemoveId(41)
+	c.Assert(err, IsNil)
+
+	c.Assert(coll.FindId(40).One(nil), IsNil)
+	c.Assert(coll.FindId(41).One(nil), Equals, mgo.ErrNotFound)
+	c.Assert(coll.FindId(42).One(nil), IsNil)
 }
 
 func (s *S) TestRemoveAll(c *C) {
@@ -549,9 +628,9 @@ func (s *S) TestCreateCollectionCapped(c *C) {
 	coll := session.DB("mydb").C("mycoll")
 
 	info := &mgo.CollectionInfo{
-		Capped: true,
+		Capped:   true,
 		MaxBytes: 1024,
-		MaxDocs: 3,
+		MaxDocs:  3,
 	}
 	err = coll.Create(info)
 	c.Assert(err, IsNil)
@@ -596,8 +675,8 @@ func (s *S) TestCreateCollectionForceIndex(c *C) {
 
 	info := &mgo.CollectionInfo{
 		ForceIdIndex: true,
-		Capped: true,
-		MaxBytes: 1024,
+		Capped:       true,
+		MaxBytes:     1024,
 	}
 	err = coll.Create(info)
 	c.Assert(err, IsNil)
@@ -610,13 +689,15 @@ func (s *S) TestCreateCollectionForceIndex(c *C) {
 }
 
 func (s *S) TestFindAndModify(c *C) {
-	session, err := mgo.Dial("localhost:40001")
+	session, err := mgo.Dial("localhost:40011")
 	c.Assert(err, IsNil)
 	defer session.Close()
 
 	coll := session.DB("mydb").C("mycoll")
 
 	err = coll.Insert(M{"n": 42})
+
+	session.SetMode(mgo.Monotonic, true)
 
 	result := M{}
 	info, err := coll.Find(M{"n": 42}).Apply(mgo.Change{Update: M{"$inc": M{"n": 1}}}, result)
@@ -677,10 +758,16 @@ func (s *S) TestFindAndModifyBug997828(c *C) {
 
 	result := make(M)
 	_, err = coll.Find(M{"n": "not-a-number"}).Apply(mgo.Change{Update: M{"$inc": M{"n": 1}}}, result)
-	c.Assert(err, ErrorMatches, `Cannot apply \$inc modifier to non-number`)
-	lerr, _ := err.(*mgo.LastError)
-	c.Assert(lerr, NotNil)
-	c.Assert(lerr.Code, Equals, 10140)
+	c.Assert(err, ErrorMatches, `(exception: )?Cannot apply \$inc modifier to non-number`)
+	if s.versionAtLeast(2, 1) {
+		qerr, _ := err.(*mgo.QueryError)
+		c.Assert(qerr, NotNil, Commentf("err: %#v", err))
+		c.Assert(qerr.Code, Equals, 10140)
+	} else {
+		lerr, _ := err.(*mgo.LastError)
+		c.Assert(lerr, NotNil, Commentf("err: %#v", err))
+		c.Assert(lerr.Code, Equals, 10140)
+	}
 }
 
 func (s *S) TestCountCollection(c *C) {
@@ -975,7 +1062,6 @@ func (s *S) TestFindIterLimit(c *C) {
 	c.Assert(stats.ReceivedDocs, Equals, 3)
 	c.Assert(stats.SocketsInUse, Equals, 0)
 }
-
 
 func (s *S) TestFindIterLimitWithMore(c *C) {
 	session, err := mgo.Dial("localhost:40001")
@@ -1627,7 +1713,9 @@ func (s *S) TestFindIterSnapshot(c *C) {
 	iter := query.Iter()
 
 	seen := map[int]bool{}
-	result := struct{ Id int "_id" }{}
+	result := struct {
+		Id int "_id"
+	}{}
 	for iter.Next(&result) {
 		if len(seen) == 2 {
 			// Grow all entries so that they have to move.
@@ -1703,56 +1791,72 @@ func (s *S) TestPrefetching(c *C) {
 
 	coll := session.DB("mydb").C("mycoll")
 
-	docs := make([]interface{}, 200)
-	for i := 0; i != 200; i++ {
-		docs[i] = M{"n": i}
+	//mgo.SetDebug(false)
+	docs := make([]interface{}, 800)
+	for i := 0; i != 600; i++ {
+		docs[i] = bson.D{{"n", i}}
 	}
 	coll.Insert(docs...)
 
-	// Same test three times.  Once with prefetching via query, then with the
-	// default prefetching, and a third time tweaking the default settings in
-	// the session.
-	for testi := 0; testi != 3; testi++ {
+	for testi := 0; testi < 5; testi++ {
 		mgo.ResetStats()
 
 		var iter *mgo.Iter
-		var nextn int
+		var beforeMore int
 
 		switch testi {
-		case 0: // First, using query methods.
-			iter = coll.Find(M{}).Prefetch(0.27).Batch(100).Iter()
-			nextn = 73
-
-		case 1: // Then, the default session value.
+		case 0: // The default session value.
 			session.SetBatch(100)
 			iter = coll.Find(M{}).Iter()
-			nextn = 75
+			beforeMore = 75
 
-		case 2: // Then, tweaking the session value.
+		case 2: // Changing the session value.
 			session.SetBatch(100)
 			session.SetPrefetch(0.27)
 			iter = coll.Find(M{}).Iter()
-			nextn = 73
+			beforeMore = 73
+
+		case 1: // Changing via query methods.
+			iter = coll.Find(M{}).Prefetch(0.27).Batch(100).Iter()
+			beforeMore = 73
+
+		case 3: // With prefetch on first document.
+			iter = coll.Find(M{}).Prefetch(1.0).Batch(100).Iter()
+			beforeMore = 0
+
+		case 4: // Without prefetch.
+			iter = coll.Find(M{}).Prefetch(0).Batch(100).Iter()
+			beforeMore = 100
 		}
 
-		result := struct{ N int }{}
-		for i := 0; i != nextn; i++ {
+		pings := 0
+		for batchi := 0; batchi < len(docs)/100-1; batchi++ {
+			c.Logf("Iterating over %d documents on batch %d", beforeMore, batchi)
+			var result struct{ N int }
+			for i := 0; i < beforeMore; i++ {
+				ok := iter.Next(&result)
+				c.Assert(ok, Equals, true, Commentf("iter.Err: %v", iter.Err()))
+			}
+			beforeMore = 99
+			c.Logf("Done iterating.")
+
+			session.Run("ping", nil) // Roundtrip to settle down.
+			pings++
+
+			stats := mgo.GetStats()
+			c.Assert(stats.ReceivedDocs, Equals, (batchi+1)*100+pings)
+
+			c.Logf("Iterating over one more document on batch %d", batchi)
 			ok := iter.Next(&result)
-			c.Assert(ok, Equals, true)
+			c.Assert(ok, Equals, true, Commentf("iter.Err: %v", iter.Err()))
+			c.Logf("Done iterating.")
+
+			session.Run("ping", nil) // Roundtrip to settle down.
+			pings++
+
+			stats = mgo.GetStats()
+			c.Assert(stats.ReceivedDocs, Equals, (batchi+2)*100+pings)
 		}
-
-		stats := mgo.GetStats()
-		c.Assert(stats.ReceivedDocs, Equals, 100)
-
-		ok := iter.Next(&result)
-		c.Assert(ok, Equals, true)
-
-		// Ping the database just to wait for the fetch above
-		// to get delivered.
-		session.Run("ping", M{}) // XXX Should support nil here.
-
-		stats = mgo.GetStats()
-		c.Assert(stats.ReceivedDocs, Equals, 201) // 200 + the ping result
 	}
 }
 
@@ -2458,10 +2562,14 @@ func (s *S) TestBuildInfo(c *C) {
 	c.Assert(err, IsNil)
 
 	var v []int
-	for _, a := range strings.Split(info.Version, ".") {
-		i, err := strconv.Atoi(a)
+	for i, a := range strings.Split(info.Version, ".") {
+		if i == 2 && strings.Contains(a, "-rc") {
+			a = a[:strings.Index(a, "-rc")]
+			info.VersionArray[len(info.VersionArray)-1] = 0
+		}
+		n, err := strconv.Atoi(a)
 		c.Assert(err, IsNil)
-		v = append(v, i)
+		v = append(v, n)
 	}
 	for len(v) < 4 {
 		v = append(v, 0)

@@ -298,10 +298,9 @@ func (p *PageRole) Users() {
 
 			if name, ok := p.POST["name"]; ok {
 				mgoServer := Middleware.Get("db").(*utils.Mongo)
-				col := ModelRole{}
 				colQuerier := utils.M{"name": name}
-				err := mgoServer.C(ColRole).Find(colQuerier).One(&col)
-				if err != nil {
+				cnt, _ := mgoServer.C(ColRole).Find(colQuerier).Count()
+				if cnt == 0 {
 					m["status"] = "0"
 					m["message"] = "角色不存在"
 				} else {
@@ -313,7 +312,7 @@ func (p *PageRole) Users() {
 					change := utils.M{}
 					change["$set"] = utils.M{"users": users}
 
-					err = mgoServer.C(ColRole).Update(colQuerier, change)
+					err := mgoServer.C(ColRole).Update(colQuerier, change)
 					if err != nil {
 						m["status"] = "0"
 						m["message"] = "修改角色状态失败！"
@@ -343,10 +342,9 @@ func (p *PageRole) Right() {
 
 			if name, ok := p.POST["name"]; ok {
 				mgoServer := Middleware.Get("db").(*utils.Mongo)
-				col := ModelRole{}
 				colQuerier := utils.M{"name": name, "delete": 0}
-				err := mgoServer.C(ColRole).Find(colQuerier).One(&col)
-				if err != nil {
+				cnt, _ := mgoServer.C(ColRole).Find(colQuerier).Count()
+				if cnt == 0 {
 					m["status"] = "0"
 					m["message"] = "角色不存在"
 				} else {
@@ -362,7 +360,7 @@ func (p *PageRole) Right() {
 							"$set": utils.M{"right.modules": modules},
 						}
 
-						err = mgoServer.C(ColRole).Update(colQuerier, change)
+						err := mgoServer.C(ColRole).Update(colQuerier, change)
 						if err != nil {
 							m["status"] = "0"
 							m["message"] = "设置角色权限失败！"

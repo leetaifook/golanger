@@ -107,7 +107,7 @@ type Iter struct {
 	op             getMoreOp
 	prefetch       float64
 	limit          int32
-	pendingDocs    int
+	docsToReceive  int
 	docsBeforeMore int
 	timeout        time.Duration
 	timedout       bool
@@ -1224,8 +1224,7 @@ func (c *Collection) Find(query interface{}) *Query {
 	return q
 }
 
-// FindId prepares a query to find a document by its _id field.
-// It is a convenience helper equivalent to:
+// FindId is a convenience helper equivalent to:
 //
 //     query := collection.Find(bson.M{"_id": id})
 //
@@ -1237,10 +1236,10 @@ func (c *Collection) FindId(id interface{}) *Query {
 type LastError struct {
 	Err             string
 	Code, N, Waited int
-	FSyncFiles      int "fsyncFiles"
+	FSyncFiles      int `bson:"fsyncFiles"`
 	WTimeout        bool
-	UpdatedExisting bool        "updatedExisting"
-	UpsertedId      interface{} "upserted"
+	UpdatedExisting bool        `bson:"updatedExisting"`
+	UpsertedId      interface{} `bson:"upserted"`
 }
 
 func (err *LastError) Error() string {
@@ -1271,7 +1270,7 @@ func (err *QueryError) Error() string {
 // happens while inserting the provided documents, the returned error will
 // be of type *LastError.
 func (c *Collection) Insert(docs ...interface{}) error {
-	_, err := c.Database.Session.writeQuery(&insertOp{c.FullName, docs})
+	_, err := c.writeQuery(&insertOp{c.FullName, docs})
 	return err
 }
 
@@ -1287,12 +1286,20 @@ func (c *Collection) Insert(docs ...interface{}) error {
 //     http://www.mongodb.org/display/DOCS/Atomic+Operations
 //
 func (c *Collection) Update(selector interface{}, change interface{}) error {
-	session := c.Database.Session
-	lerr, err := session.writeQuery(&updateOp{c.FullName, selector, change, 0})
+	lerr, err := c.writeQuery(&updateOp{c.FullName, selector, change, 0})
 	if err == nil && lerr != nil && !lerr.UpdatedExisting {
 		return ErrNotFound
 	}
 	return err
+}
+
+// UpdateId is a convenience helper equivalent to:
+//
+//     err := collection.Update(bson.M{"_id": id}, change)
+//
+// See the Update method for more details.
+func (c *Collection) UpdateId(id interface{}, change interface{}) error {
+	return c.Update(bson.D{{"_id", id}}, change)
 }
 
 // ChangeInfo holds details about the outcome of a change operation.
@@ -1315,8 +1322,7 @@ type ChangeInfo struct {
 //     http://www.mongodb.org/display/DOCS/Atomic+Operations
 //
 func (c *Collection) UpdateAll(selector interface{}, change interface{}) (info *ChangeInfo, err error) {
-	session := c.Database.Session
-	lerr, err := session.writeQuery(&updateOp{c.FullName, selector, change, 2})
+	lerr, err := c.writeQuery(&updateOp{c.FullName, selector, change, 2})
 	if err == nil && lerr != nil {
 		info = &ChangeInfo{Updated: lerr.N}
 	}
@@ -1342,8 +1348,7 @@ func (c *Collection) Upsert(selector interface{}, change interface{}) (info *Cha
 		return nil, err
 	}
 	change = bson.Raw{0x03, data}
-	session := c.Database.Session
-	lerr, err := session.writeQuery(&updateOp{c.FullName, selector, change, 1})
+	lerr, err := c.writeQuery(&updateOp{c.FullName, selector, change, 1})
 	if err == nil && lerr != nil {
 		info = &ChangeInfo{}
 		if lerr.UpdatedExisting {
@@ -1353,6 +1358,15 @@ func (c *Collection) Upsert(selector interface{}, change interface{}) (info *Cha
 		}
 	}
 	return info, err
+}
+
+// UpsertId is a convenience helper equivalent to:
+//
+//     info, err := collection.Upsert(bson.M{"_id": id}, change)
+//
+// See the Upsert method for more details.
+func (c *Collection) UpsertId(id interface{}, change interface{}) (info *ChangeInfo, err error) {
+	return c.Upsert(bson.D{{"_id", id}}, change)
 }
 
 // Remove finds a single document matching the provided selector document
@@ -1366,12 +1380,20 @@ func (c *Collection) Upsert(selector interface{}, change interface{}) (info *Cha
 //     http://www.mongodb.org/display/DOCS/Removing
 //
 func (c *Collection) Remove(selector interface{}) error {
-	session := c.Database.Session
-	lerr, err := session.writeQuery(&deleteOp{c.FullName, selector, 1})
+	lerr, err := c.writeQuery(&deleteOp{c.FullName, selector, 1})
 	if err == nil && lerr != nil && lerr.N == 0 {
 		return ErrNotFound
 	}
 	return err
+}
+
+// RemoveId is a convenience helper equivalent to:
+//
+//     err := collection.Remove(bson.M{"_id": id})
+//
+// See the Remove method for more details.
+func (c *Collection) RemoveId(id interface{}) error {
+	return c.Remove(bson.D{{"_id", id}})
 }
 
 // RemoveAll finds all documents matching the provided selector document
@@ -1384,8 +1406,7 @@ func (c *Collection) Remove(selector interface{}) error {
 //     http://www.mongodb.org/display/DOCS/Removing
 //
 func (c *Collection) RemoveAll(selector interface{}) (info *ChangeInfo, err error) {
-	session := c.Database.Session
-	lerr, err := session.writeQuery(&deleteOp{c.FullName, selector, 0})
+	lerr, err := c.writeQuery(&deleteOp{c.FullName, selector, 0})
 	if err == nil && lerr != nil {
 		info = &ChangeInfo{Removed: lerr.N}
 	}
@@ -1717,6 +1738,7 @@ func checkQueryError(fullname string, d []byte) error {
 Error:
 	result := &queryError{}
 	bson.Unmarshal(d, result)
+	logf("queryError: %#v\n", result)
 	if result.LastError != nil {
 		return result.LastError
 	}
@@ -1889,12 +1911,17 @@ func (q *Query) Iter() *Iter {
 	limit := q.limit
 	q.m.Unlock()
 
-	iter := &Iter{session: session, prefetch: prefetch, limit: limit}
+	iter := &Iter{
+		session:  session,
+		prefetch: prefetch,
+		limit:    limit,
+		timeout:  -1,
+	}
 	iter.gotReply.L = &iter.m
 	iter.op.collection = op.collection
 	iter.op.limit = op.limit
 	iter.op.replyFunc = iter.replyFunc()
-	iter.pendingDocs++
+	iter.docsToReceive++
 	op.replyFunc = iter.op.replyFunc
 	op.flags |= session.slaveOkFlag()
 
@@ -1967,7 +1994,7 @@ func (q *Query) Tail(timeout time.Duration) *Iter {
 	iter.op.collection = op.collection
 	iter.op.limit = op.limit
 	iter.op.replyFunc = iter.replyFunc()
-	iter.pendingDocs++
+	iter.docsToReceive++
 	op.replyFunc = iter.op.replyFunc
 	op.flags |= 2 | 32 | session.slaveOkFlag() // Tailable | AwaitData [| SlaveOk]
 
@@ -2038,22 +2065,20 @@ func (iter *Iter) Timeout() bool {
 //    }
 //
 func (iter *Iter) Next(result interface{}) bool {
-	timeouts := false
-	timeout := time.Time{}
-	if iter.timeout >= 0 {
-		timeouts = true
-		timeout = time.Now().Add(iter.timeout)
-	}
-
 	iter.m.Lock()
 	iter.timedout = false
-	for iter.err == nil && iter.docData.Len() == 0 && (iter.pendingDocs > 0 || iter.op.cursorId != 0) {
-		if iter.pendingDocs == 0 && iter.op.cursorId != 0 {
-			// Tailable cursor exhausted.
-			if timeouts && time.Now().After(timeout) {
-				iter.timedout = true
-				iter.m.Unlock()
-				return false
+	timeout := time.Time{}
+	for iter.err == nil && iter.docData.Len() == 0 && (iter.docsToReceive > 0 || iter.op.cursorId != 0) {
+		if iter.docsToReceive == 0 {
+			if iter.timeout >= 0 {
+				if timeout.IsZero() {
+					timeout = time.Now().Add(iter.timeout)
+				}
+				if time.Now().After(timeout) {
+					iter.timedout = true
+					iter.m.Unlock()
+					return false
+				}
 			}
 			iter.getMore()
 		}
@@ -2068,10 +2093,10 @@ func (iter *Iter) Next(result interface{}) bool {
 			iter.err = ErrNotFound
 		}
 		if iter.op.cursorId != 0 && iter.err == nil {
-			iter.docsBeforeMore--
 			if iter.docsBeforeMore == 0 {
 				iter.getMore()
 			}
+			iter.docsBeforeMore-- // Goes negative.
 		}
 		iter.m.Unlock()
 		err := bson.Unmarshal(docData, result)
@@ -2198,7 +2223,6 @@ func (iter *Iter) getMore() {
 	defer socket.Release()
 
 	debugf("Iter %p requesting more documents", iter)
-	iter.pendingDocs++
 	if iter.limit > 0 && iter.op.limit > iter.limit {
 		iter.op.limit = iter.limit
 	}
@@ -2209,6 +2233,7 @@ func (iter *Iter) getMore() {
 	if err != nil {
 		iter.err = err
 	}
+	iter.docsToReceive++
 }
 
 type countCmd struct {
@@ -2558,6 +2583,10 @@ func (q *Query) Apply(change Change, result interface{}) (info *ChangeInfo, err 
 		Fields:     op.selector,
 	}
 
+	session = session.Clone()
+	defer session.Close()
+	session.SetMode(Strong, false)
+
 	var doc valueResult
 	err = session.DB(dbname).Run(&cmd, &doc)
 	if err != nil {
@@ -2566,12 +2595,14 @@ func (q *Query) Apply(change Change, result interface{}) (info *ChangeInfo, err 
 		}
 		return nil, err
 	}
-	if doc.Value.Kind == 0x0A {
+	if doc.LastError.N == 0 {
 		return nil, ErrNotFound
 	}
-	err = doc.Value.Unmarshal(result)
-	if err != nil {
-		return nil, err
+	if doc.Value.Kind != 0x0A {
+		err = doc.Value.Unmarshal(result)
+		if err != nil {
+			return nil, err
+		}
 	}
 	info = &ChangeInfo{}
 	lerr := &doc.LastError
@@ -2700,7 +2731,7 @@ func (s *Session) setSocket(socket *mongoSocket) {
 func (iter *Iter) replyFunc() replyFunc {
 	return func(err error, op *replyOp, docNum int, docData []byte) {
 		iter.m.Lock()
-		iter.pendingDocs--
+		iter.docsToReceive--
 		if err != nil {
 			iter.err = err
 			debugf("Iter %p received an error: %s", iter, err.Error())
@@ -2715,8 +2746,8 @@ func (iter *Iter) replyFunc() replyFunc {
 		} else {
 			rdocs := int(op.replyDocs)
 			if docNum == 0 {
-				iter.pendingDocs += rdocs - 1
-				iter.docsBeforeMore = rdocs - int(iter.prefetch*float64(rdocs))
+				iter.docsToReceive += rdocs - 1
+				iter.docsBeforeMore = iter.docData.Len() + rdocs - int(iter.prefetch*float64(rdocs))
 				iter.op.cursorId = op.cursorId
 			}
 			// XXX Handle errors and flags.
@@ -2732,7 +2763,8 @@ func (iter *Iter) replyFunc() replyFunc {
 // by a getLastError command in case the session is in safe mode.  The
 // LastError result is made available in lerr, and if lerr.Err is set it
 // will also be returned as err.
-func (s *Session) writeQuery(op interface{}) (lerr *LastError, err error) {
+func (c *Collection) writeQuery(op interface{}) (lerr *LastError, err error) {
+	s := c.Database.Session
 	socket, err := s.acquireSocket(false)
 	if err != nil {
 		return nil, err
@@ -2751,6 +2783,7 @@ func (s *Session) writeQuery(op interface{}) (lerr *LastError, err error) {
 		var replyErr error
 		mutex.Lock()
 		query := *safeOp // Copy the data.
+		query.collection = c.Database.Name + ".$cmd"
 		query.replyFunc = func(err error, reply *replyOp, docNum int, docData []byte) {
 			replyData = docData
 			replyErr = err
@@ -2764,6 +2797,13 @@ func (s *Session) writeQuery(op interface{}) (lerr *LastError, err error) {
 		if replyErr != nil {
 			return nil, replyErr // XXX TESTME
 		}
+		if hasErrMsg(replyData) {
+			// Looks like getLastError itself failed.
+			err = checkQueryError(query.collection, replyData)
+			if err != nil {
+				return nil, err
+			}
+		}
 		result := &LastError{}
 		bson.Unmarshal(replyData, &result)
 		debugf("Result from writing query: %#v", result)
@@ -2773,4 +2813,11 @@ func (s *Session) writeQuery(op interface{}) (lerr *LastError, err error) {
 		return result, nil
 	}
 	panic("unreachable")
+}
+
+func hasErrMsg(d []byte) bool {
+	return len(d) > 16 &&
+		d[5] == 'e' && d[6] == 'r' && d[7] == 'r' &&
+		d[8] == 'm' && d[9] == 's' && d[10] == 'g' &&
+		d[11] == '\x00' && d[4] == '\x02'
 }

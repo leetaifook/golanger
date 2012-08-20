@@ -115,7 +115,7 @@ func (p *PageModule) StopModule() {
 			}
 			if modulepath, ok := p.POST["modulepath"]; ok {
 				mgoServer := Middleware.Get("db").(*utils.Mongo)
-				col := ModelUser{}
+				col := ModelModule{}
 				colQuerier := utils.M{"path": modulepath}
 				err := mgoServer.C(ColModule).Find(colQuerier).One(&col)
 				if err != nil {

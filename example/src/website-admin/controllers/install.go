@@ -57,7 +57,7 @@ func (p *PageInstall) Index() {
 		mgoServer.C(ColModule).Insert(&ModelModule{
 			Name:        "用户管理",
 			Path:        "user/",
-			Order:       1,
+			Order:       0,
 			Status:      1,
 			Create_time: tnow.Unix(),
 			Update_time: tnow.Unix(),
@@ -66,7 +66,7 @@ func (p *PageInstall) Index() {
 		mgoServer.C(ColModule).Insert(&ModelModule{
 			Name:        "角色管理",
 			Path:        "role/",
-			Order:       2,
+			Order:       0,
 			Status:      1,
 			Create_time: tnow.Unix(),
 			Update_time: tnow.Unix(),
