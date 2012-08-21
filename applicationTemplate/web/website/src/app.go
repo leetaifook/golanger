@@ -1,8 +1,7 @@
 package main
 
 import (
-	"./controllers"
-	_ "./helper"
+	"controllers"
 	"flag"
 	"fmt"
 	"io/ioutil"
@@ -13,6 +12,7 @@ import (
 	"reflect"
 	"runtime"
 	"strings"
+	_ "templateFunc"
 	"text/template"
 	"time"
 )

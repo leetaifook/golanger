@@ -1,7 +1,7 @@
-package helper
+package templateFunc
 
-import (
-	. "../controllers"
+/*import (
+	. "controllers"
 	"golanger/utils"
 )
 
@@ -10,3 +10,4 @@ func init() {
 		return utils.NewTime().GetTimeToStr(tm)
 	})
 }
+*/

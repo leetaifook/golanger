@@ -55,6 +55,7 @@ var Page = &App{
 			Css:   map[string]string{},
 			Js:    map[string]string{},
 			Img:   map[string]string{},
+			Func:  template.FuncMap{},
 		},
 	},
 }
