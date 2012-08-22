@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"launchpad.net/goyaml"
+	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -188,7 +189,7 @@ func startApp() {
 				globalTemplate = t
 			}
 
-			if pageTemplate, _ := globalTemplate.New(filepath.Base(controllers.Page.Template)).ParseFiles(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); pageTemplate != nil {
+			if pageTemplate, err := globalTemplate.New(filepath.Base(controllers.Page.Template)).ParseFiles(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); err == nil {
 				templateVar := map[string]interface{}{
 					"G":        controllers.Page.Base.GET,
 					"P":        controllers.Page.Base.POST,
@@ -246,11 +247,21 @@ func startApp() {
 					if controllers.Page.Config.AutoJumpToHtml {
 						http.Redirect(controllers.Page.ResponseWriter, controllers.Page.Request, controllers.Page.Site.Root+htmlFile[2:], http.StatusFound)
 					} else {
-						pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
+						err := pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
+						if err != nil {
+							log.Println(err)
+						}
 					}
 				} else {
-					pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
+					err := pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
+					if err != nil {
+						log.Println(err)
+						controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
+					}
 				}
+			} else {
+				log.Println(err)
+				controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
 			}
 		}
 
