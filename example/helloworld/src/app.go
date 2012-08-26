@@ -59,6 +59,11 @@ func init() {
 }
 
 func startApp() {
+	http.HandleFunc(controllers.Page.Site.Root+"favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+		staticPath := controllers.Page.Config.StaticDirectory + controllers.Page.Config.ThemeDirectory + "favicon.ico"
+		http.ServeFile(w, r, staticPath)
+	})
+
 	http.HandleFunc(controllers.Page.Document.Static, func(w http.ResponseWriter, r *http.Request) {
 		staticPath := controllers.Page.Config.StaticDirectory + r.URL.Path[len(controllers.Page.Document.Static):]
 		http.ServeFile(w, r, staticPath)
@@ -184,84 +189,85 @@ func startApp() {
 		}
 
 		if controllers.Page.Document.Close == false && controllers.Page.Document.Hide == false {
-			globalTemplate := template.New("globalTpl").Funcs(controllers.Page.TemplateFunc)
-			if t, _ := globalTemplate.ParseGlob(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory + controllers.Page.Config.TemplateGlobalFile); t != nil {
-				globalTemplate = t
-			}
-
-			if pageTemplate, err := globalTemplate.New(filepath.Base(controllers.Page.Template)).ParseFiles(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); err == nil {
-				templateVar := map[string]interface{}{
-					"G":        controllers.Page.Base.GET,
-					"P":        controllers.Page.Base.POST,
-					"C":        controllers.Page.Base.COOKIE,
-					"S":        controllers.Page.Base.SESSION,
-					"Siteroot": controllers.Page.Site.Root,
-					"Version":  controllers.Page.Site.Version,
-					"Template": controllers.Page.Template,
-					"D":        controllers.Page.Document,
-					"Config":   controllers.Page.Config.M,
+			if tplFi, err := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); err == nil {
+				globalTemplate := template.New("globalTpl").Funcs(controllers.Page.TemplateFunc)
+				if t, _ := globalTemplate.ParseGlob(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory + controllers.Page.Config.TemplateGlobalFile); t != nil {
+					globalTemplate = t
 				}
 
-				if controllers.Page.Document.GenerateHtml {
-					htmlFile := controllers.Page.Config.StaticDirectory + controllers.Page.Config.HtmlDirectory + urlPath + fileName
-					htmlDir := filepath.Dir(htmlFile)
-					if htmlDirFi, err := os.Stat(htmlDir); err != nil || !htmlDirFi.IsDir() {
-						os.MkdirAll(htmlDir, 0777)
+				if pageTemplate, err := globalTemplate.New(filepath.Base(controllers.Page.Template)).ParseFiles(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); err == nil {
+					templateVar := map[string]interface{}{
+						"G":        controllers.Page.Base.GET,
+						"P":        controllers.Page.Base.POST,
+						"C":        controllers.Page.Base.COOKIE,
+						"S":        controllers.Page.Base.SESSION,
+						"Siteroot": controllers.Page.Site.Root,
+						"Version":  controllers.Page.Site.Version,
+						"Template": controllers.Page.Template,
+						"D":        controllers.Page.Document,
+						"Config":   controllers.Page.Config.M,
 					}
 
-					var doWrite bool
-					if controllers.Page.Config.AutoGenerateHtml {
-						if controllers.Page.Config.AutoGenerateHtmlCycleTime <= 0 {
-							doWrite = true
-						} else {
-							if htmlFi, err := os.Stat(htmlFile); err != nil {
+					if controllers.Page.Document.GenerateHtml {
+						htmlFile := controllers.Page.Config.StaticDirectory + controllers.Page.Config.HtmlDirectory + urlPath + fileName
+						htmlDir := filepath.Dir(htmlFile)
+						if htmlDirFi, err := os.Stat(htmlDir); err != nil || !htmlDirFi.IsDir() {
+							os.MkdirAll(htmlDir, 0777)
+						}
+
+						var doWrite bool
+						if controllers.Page.Config.AutoGenerateHtml {
+							if controllers.Page.Config.AutoGenerateHtmlCycleTime <= 0 {
 								doWrite = true
 							} else {
-								tplFi, _ := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template)
-								switch {
-								case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
+								if htmlFi, err := os.Stat(htmlFile); err != nil {
 									doWrite = true
-								case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
-									doWrite = true
-								case time.Now().Unix()-htmlFi.ModTime().Unix() >= controllers.Page.Config.AutoGenerateHtmlCycleTime:
-									doWrite = true
-								default:
-									globalTplFi, err := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory)
-									if err == nil {
-										if globalTplFi.ModTime().Unix() >= htmlFi.ModTime().Unix() {
-											doWrite = true
+								} else {
+									switch {
+									case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
+										doWrite = true
+									case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
+										doWrite = true
+									case time.Now().Unix()-htmlFi.ModTime().Unix() >= controllers.Page.Config.AutoGenerateHtmlCycleTime:
+										doWrite = true
+									default:
+										globalTplFi, err := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory)
+										if err == nil {
+											if globalTplFi.ModTime().Unix() >= htmlFi.ModTime().Unix() {
+												doWrite = true
+											}
 										}
 									}
 								}
 							}
 						}
-					}
 
-					if doWrite {
-						if file, err := os.OpenFile(htmlFile, os.O_CREATE|os.O_WRONLY, 0777); err == nil {
-							templateVar["Siteroot"] = controllers.Page.Config.SiteRoot + htmlDir + "/"
-							pageTemplate.Execute(file, templateVar)
+						if doWrite {
+							if file, err := os.OpenFile(htmlFile, os.O_CREATE|os.O_WRONLY, 0777); err == nil {
+								templateVar["Siteroot"] = controllers.Page.Config.SiteRoot + htmlDir + "/"
+								pageTemplate.Execute(file, templateVar)
+							}
 						}
-					}
 
-					if controllers.Page.Config.AutoJumpToHtml {
-						http.Redirect(controllers.Page.ResponseWriter, controllers.Page.Request, controllers.Page.Site.Root+htmlFile[2:], http.StatusFound)
+						if controllers.Page.Config.AutoJumpToHtml {
+							http.Redirect(controllers.Page.ResponseWriter, controllers.Page.Request, controllers.Page.Site.Root+htmlFile[2:], http.StatusFound)
+						} else {
+							err := pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
+							if err != nil {
+								log.Println(err)
+							}
+						}
 					} else {
 						err := pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
 						if err != nil {
 							log.Println(err)
+							controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
 						}
 					}
 				} else {
-					err := pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
-					if err != nil {
-						log.Println(err)
-						controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
-					}
+					log.Println(err)
+					controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
 				}
-			} else {
-				log.Println(err)
-				controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
 			}
 		}
 
