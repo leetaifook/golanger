@@ -58,9 +58,10 @@ lee#leetaifook.com
 
 ### 约定的命名规则：
 
-    Model: 以“m.”开头
-    Controller: 以“c.”开头
-    View: 存放在view目录中
+    Model: 存放在models目录中
+    Controller: 存放在controllers目录中
+    View: 存放在views目录中
+    静态文件放在static目录中
 
 ## 运行方法
 
@@ -69,28 +70,25 @@ lee#leetaifook.com
 
 1.下载go安装包，部署go的编译环境
 
-2.设置GOPATH环境变量
+2.安装相应的扩展包<非必须>
 
-```
-export GOPATH=:$GOPATH:[path]/framework
-```
-
-3.执行编译命令
+3.执行初步命令
 
 ``` bash
-cd [path]/example/src/helloword
-go build ./
+cd [path]/example/helloworld/src
+chmod +x ./build.sh
 ```
 
-4.执行编译好的程序
+4.编译并执行程序
 
 ``` bash
-./helloword -addr=:8080
+./build.sh
 ```
 
 5.打开浏览器访问
 
-    http://localhost:8080
+    根据输出的端口 [port]
+    http://localhost:[port]
 
 */
 

@@ -61,6 +61,7 @@ lee#leetaifook.com
     Model: 存放在models目录中
     Controller: 存放在controllers目录中
     View: 存放在views目录中
+    静态文件放在static目录中
 
 ## 运行方法
 
@@ -69,7 +70,7 @@ lee#leetaifook.com
 
 1.下载go安装包，部署go的编译环境
 
-2.安装相应的扩展包
+2.安装相应的扩展包<非必须>
 
 3.执行初步命令
 
