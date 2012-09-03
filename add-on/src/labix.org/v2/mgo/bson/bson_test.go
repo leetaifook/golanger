@@ -59,12 +59,17 @@ func wrapInDoc(data string) string {
 func makeZeroDoc(value interface{}) (zero interface{}) {
 	v := reflect.ValueOf(value)
 	t := v.Type()
-	if t.Kind() == reflect.Map {
+	switch t.Kind() {
+	case reflect.Map:
 		mv := reflect.MakeMap(t)
 		zero = mv.Interface()
-	} else {
+	case reflect.Ptr:
 		pv := reflect.New(v.Type().Elem())
 		zero = pv.Interface()
+	case reflect.Slice:
+		zero = reflect.New(t).Interface()
+	default:
+		panic("unsupported doc type")
 	}
 	return zero
 }
@@ -428,6 +433,8 @@ type ignoreField struct {
 var marshalItems = []testItemType{
 	// Ordered document dump.  Will unmarshal as a dictionary by default.
 	{bson.D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", nil}, {"f", nil}, {"e", true}},
+		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x08e\x00\x01"},
+	{MyD{{"a", nil}, {"c", nil}, {"b", nil}, {"d", nil}, {"f", nil}, {"e", true}},
 		"\x0Aa\x00\x0Ac\x00\x0Ab\x00\x0Ad\x00\x0Af\x00\x08e\x00\x01"},
 	{&dOnIface{bson.D{{"a", nil}, {"c", nil}, {"b", nil}, {"d", true}}},
 		"\x03d\x00" + wrapInDoc("\x0Aa\x00\x0Ac\x00\x0Ab\x00\x08d\x00\x01")},
@@ -917,6 +924,8 @@ type inlineDupName struct {
 
 type MyBytes []byte
 type MyBool bool
+type MyD []bson.DocElem
+type MyM map[string]interface{}
 
 var truevar = true
 var falsevar = false
@@ -1096,6 +1105,14 @@ var twoWayCrossItems = []crossTypeItem{
 	// zero time + 1 second + 1 millisecond; overflows int64 as nanoseconds
 	{&struct{ V time.Time }{time.Unix(-62135596799, 1e6).Local()},
 		map[string]interface{}{"v": time.Unix(-62135596799, 1e6).Local()}},
+
+	// bson.D <=> []DocElem
+	{&bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}, &bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}},
+	{&bson.D{{"a", bson.D{{"b", 1}, {"c", 2}}}}, &MyD{{"a", MyD{{"b", 1}, {"c", 2}}}}},
+
+	// bson.M <=> map
+	{bson.M{"a": bson.M{"b": 1, "c": 2}}, MyM{"a": MyM{"b": 1, "c": 2}}},
+	{bson.M{"a": bson.M{"b": 1, "c": 2}}, map[string]interface{}{"a": map[string]interface{}{"b": 1, "c": 2}}},
 }
 
 // Same thing, but only one way (obj1 => obj2).
