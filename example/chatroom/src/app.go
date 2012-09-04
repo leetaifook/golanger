@@ -177,7 +177,7 @@ func startApp() {
 		controllers.Page.CurrentAction = methodName
 		controllers.Page.PageLock.Unlock()
 
-		controllers.Page.PageLock.RLock()
+		controllers.Page.PageRLock.RLock()
 		pageController := controllers.Page.GetController(controllers.Page.CurrentController)
 		rv := reflect.ValueOf(pageController)
 		rt := rv.Type()
@@ -250,32 +250,44 @@ func startApp() {
 						if doWrite {
 							if file, err := os.OpenFile(htmlFile, os.O_CREATE|os.O_WRONLY, 0777); err == nil {
 								templateVar["Siteroot"] = controllers.Page.Config.SiteRoot + htmlDir + "/"
+								controllers.Page.PageLock.Lock()
 								pageTemplate.Execute(file, templateVar)
+								controllers.Page.PageLock.Unlock()
 							}
 						}
 
 						if controllers.Page.Config.AutoJumpToHtml {
+							controllers.Page.PageLock.Lock()
 							http.Redirect(w, r, controllers.Page.Site.Root+htmlFile[2:], http.StatusFound)
+							controllers.Page.PageLock.Unlock()
 						} else {
+							controllers.Page.PageLock.Lock()
 							err := pageTemplate.Execute(w, templateVar)
+							controllers.Page.PageLock.Unlock()
 							if err != nil {
 								log.Println(err)
 							}
 						}
 					} else {
+						controllers.Page.PageLock.Lock()
 						err := pageTemplate.Execute(w, templateVar)
 						if err != nil {
 							log.Println(err)
 							w.Write([]byte(fmt.Sprint(err)))
 						}
+
+						controllers.Page.PageLock.Unlock()
 					}
 				} else {
 					log.Println(err)
+					controllers.Page.PageLock.Lock()
 					w.Write([]byte(fmt.Sprint(err)))
+					controllers.Page.PageLock.Unlock()
 				}
 			}
 		}
-		controllers.Page.PageLock.RUnlock()
+
+		controllers.Page.PageRLock.RUnlock()
 
 		controllers.Page.PageLock.Lock()
 		controllers.Page.Reset()

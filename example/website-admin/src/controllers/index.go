@@ -75,7 +75,7 @@ func (p *PageIndex) Login() {
 func (p *PageIndex) Logout() {
 	sessionSign := p.COOKIE[p.SessionName]
 	if sessionSign != "" {
-		p.ClearSession(p.COOKIE[p.SessionName])
+		p.Session.Clear(sessionSign)
 	}
 
 	http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)

@@ -8,7 +8,8 @@ import (
 )
 
 type Page struct {
-	PageLock sync.RWMutex
+	PageRLock sync.RWMutex
+	PageLock  sync.Mutex
 	*Site
 	DefaultController   interface{}
 	NotFoundtController interface{}
