@@ -3,10 +3,12 @@ package web
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"text/template"
 )
 
 type Page struct {
+	PageLock sync.RWMutex
 	*Site
 	DefaultController   interface{}
 	NotFoundtController interface{}

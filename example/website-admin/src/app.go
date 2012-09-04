@@ -70,6 +70,7 @@ func startApp() {
 	})
 
 	http.HandleFunc(controllers.Page.Site.Root, func(w http.ResponseWriter, r *http.Request) {
+		controllers.Page.PageLock.Lock()
 		yamlFi, _ := os.Stat(*configPath)
 		if yamlFi.ModTime().Unix() > yamlLastModTime {
 			yamlLastModTime = yamlFi.ModTime().Unix()
@@ -120,6 +121,7 @@ func startApp() {
 		controllers.Page.SetNotFoundController(&controllers.Page404{controllers.Page})
 		controllers.Page.SetDefaultController(controllers.Page.GetController(controllers.Page.Config.IndexDirectory))
 		controllers.Page.RegisterController(controllers.Page.Site.Root, controllers.Page.DefaultController)
+
 		urlPath, fileName := filepath.Split(r.URL.Path)
 		if urlPath == controllers.Page.Site.Root {
 			urlPath = controllers.Page.Site.Root + controllers.Page.Config.IndexDirectory
@@ -173,6 +175,9 @@ func startApp() {
 
 		controllers.Page.CurrentController = urlPath[len(controllers.Page.Site.Root):]
 		controllers.Page.CurrentAction = methodName
+		controllers.Page.PageLock.Unlock()
+
+		controllers.Page.PageLock.RLock()
 		pageController := controllers.Page.GetController(controllers.Page.CurrentController)
 		rv := reflect.ValueOf(pageController)
 		rt := rv.Type()
@@ -250,28 +255,31 @@ func startApp() {
 						}
 
 						if controllers.Page.Config.AutoJumpToHtml {
-							http.Redirect(controllers.Page.ResponseWriter, controllers.Page.Request, controllers.Page.Site.Root+htmlFile[2:], http.StatusFound)
+							http.Redirect(w, r, controllers.Page.Site.Root+htmlFile[2:], http.StatusFound)
 						} else {
-							err := pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
+							err := pageTemplate.Execute(w, templateVar)
 							if err != nil {
 								log.Println(err)
 							}
 						}
 					} else {
-						err := pageTemplate.Execute(controllers.Page.ResponseWriter, templateVar)
+						err := pageTemplate.Execute(w, templateVar)
 						if err != nil {
 							log.Println(err)
-							controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
+							w.Write([]byte(fmt.Sprint(err)))
 						}
 					}
 				} else {
 					log.Println(err)
-					controllers.Page.ResponseWriter.Write([]byte(fmt.Sprint(err)))
+					w.Write([]byte(fmt.Sprint(err)))
 				}
 			}
 		}
+		controllers.Page.PageLock.RUnlock()
 
+		controllers.Page.PageLock.Lock()
 		controllers.Page.Reset()
+		controllers.Page.PageLock.Unlock()
 	})
 
 	err := http.ListenAndServe(*addr, nil)
