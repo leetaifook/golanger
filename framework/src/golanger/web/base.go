@@ -1,9 +1,7 @@
 package web
 
 import (
-	"crypto/md5"
-	"fmt"
-	"io"
+	"golanger/session"
 	"mime"
 	"net/http"
 	"net/url"
@@ -18,18 +16,14 @@ type Base struct {
 	SESSION        map[string]interface{}
 	MAX_FORM_SIZE  int64
 	SupportSession bool
+	Session        *session.SessionManager
 	SessionName    string
-	Session        map[string][2]map[string]interface{}
 	Request        *http.Request
 	ResponseWriter http.ResponseWriter
 	Cookie         []*http.Cookie
 }
 
 func (b *Base) Init() *Base {
-	if b.Session == nil {
-		b.Session = map[string][2]map[string]interface{}{}
-	}
-
 	b.GET = func() map[string]string {
 		g := map[string]string{}
 		q := b.Request.URL.Query()
@@ -66,70 +60,14 @@ func (b *Base) Init() *Base {
 		return c
 	}()
 
-	b.SESSION = func() map[string]interface{} {
-		var s map[string]interface{}
-
-		if b.SupportSession {
-			if b.SessionName == "" {
-				b.SessionName = "GoLangerSession"
-			}
-
-			timenow := time.Now()
-
-			go func() {
-				for sessionSign, _ := range b.Session {
-					if b.Session[sessionSign][0]["expires"].(int64) <= timenow.Unix() {
-						delete(b.Session, sessionSign)
-						b.SetCookie(b.SessionName, sessionSign, -3600)
-					}
-				}
-			}()
-
-			var sessionSign string
-			if sign, ok := b.COOKIE[b.SessionName]; !ok {
-				var userAgent = b.Request.Header.Get("User-Agent")
-				var remoteAddr = b.Request.RemoteAddr
-				var timeNano = timenow.UnixNano()
-
-				m := md5.New()
-				io.WriteString(m, strconv.FormatInt(timeNano, 10)+remoteAddr+userAgent+"author:李伟-LiWei-leetaifook")
-				sessionSign = fmt.Sprintf("%x", m.Sum(nil))
-				var expires int64 = 360
-				b.SetCookie(b.SessionName, sessionSign, expires, "/")
-				b.Session[sessionSign] = [2]map[string]interface{}{
-					map[string]interface{}{
-						"expires": timenow.Unix() + expires,
-					},
-					map[string]interface{}{},
-				}
-			} else {
-				sessionSign = sign
-				if _, ok := b.Session[sessionSign]; !ok {
-					var expires int64 = 3600
-					b.Session[sessionSign] = [2]map[string]interface{}{
-						map[string]interface{}{
-							"expires": timenow.Unix() + expires,
-						},
-						map[string]interface{}{},
-					}
-				}
-			}
-
-			s = b.Session[sessionSign][1]
-		}
-
-		return s
-	}()
+	if b.SupportSession {
+		b.SESSION = b.Session.Get(b.ResponseWriter, b.Request)
+		b.SessionName = b.Session.CookieName
+	} else {
+		b.SESSION = map[string]interface{}{}
+	}
 
 	return b
-}
-
-func (b *Base) ClearSession(sessionSign string) {
-	if sessionSign == "" {
-		b.Session = map[string][2]map[string]interface{}{}
-	} else {
-		delete(b.Session, sessionSign)
-	}
 }
 
 /*

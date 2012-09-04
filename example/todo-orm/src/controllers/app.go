@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"golanger/session"
 	"golanger/web"
 	"strconv"
 	"text/template"
@@ -44,6 +45,7 @@ var Page = &App{
 		Site: &web.Site{
 			Base: &web.Base{
 				MAX_FORM_SIZE: MAX_FORM_SIZE,
+				Session:       session.New("", 0, 0),
 			},
 			Version: strconv.Itoa(time.Now().Year()),
 		},

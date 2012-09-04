@@ -88,7 +88,7 @@ func (p *PageInstall) Index() {
 
 		sessionSign := p.COOKIE[p.SessionName]
 		if sessionSign != "" {
-			p.ClearSession(p.COOKIE[p.SessionName])
+			p.Session.Clear(sessionSign)
 		}
 
 		p.ResponseWriter.Write([]byte("安装成功...<br/>用户名:" + username + ",密码:" + password))
