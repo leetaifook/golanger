@@ -82,6 +82,13 @@ func (p *Page) RegisterController(relUrlPath string, i interface{}) *Page {
 	return p
 }
 
+func (p *Page) UpdateController(oldUrlPath, relUrlPath string, i interface{}) *Page {
+	delete(p.Controller, oldUrlPath)
+	p.Controller[relUrlPath] = i
+
+	return p
+}
+
 func (p *Page) GetController(urlPath string) (i interface{}) {
 	var relUrlPath string
 	if strings.HasPrefix(urlPath, p.Site.Root) {

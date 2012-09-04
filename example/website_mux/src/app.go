@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	"sync"
 	_ "templateFunc"
@@ -32,7 +31,6 @@ func init() {
 	flag.Parse()
 	os.Chdir(filepath.Dir(os.Args[0]))
 	fmt.Println("Listen server address: " + *addr)
-	runtime.GOMAXPROCS(runtime.NumCPU()*2 + 1)
 
 	yamlData, err := ioutil.ReadFile(*configPath)
 	if err != nil {
@@ -187,9 +185,6 @@ func startApp() {
 						globalTemplate = t
 					}
 
-					tplFi, tplErr := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template)
-					pageTemplate, pageErr := globalTemplate.New(filepath.Base(controllers.Page.Template)).ParseFiles(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template)
-
 					pageLock := sync.RWMutex{}
 					http.HandleFunc(routeDir+routeFile, func(w http.ResponseWriter, r *http.Request) {
 						pageLock.Lock()
@@ -204,9 +199,9 @@ func startApp() {
 						pageLock.Unlock()
 
 						pageLock.RLock()
-						if tplErr == nil {
+						if tplFi, tplErr := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); tplErr == nil {
 							if controllers.Page.Document.Close == false && controllers.Page.Document.Hide == false {
-								if pageErr == nil {
+								if pageTemplate, pageErr := globalTemplate.New(filepath.Base(controllers.Page.Template)).ParseFiles(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); pageErr == nil {
 									templateVar := map[string]interface{}{
 										"G":        controllers.Page.Base.GET,
 										"P":        controllers.Page.Base.POST,
