@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"fmt"
+	"time"
 )
 
 type PageIndex struct {
@@ -20,6 +21,7 @@ func (p *PageIndex) Index() {
 		"a": "b",
 		"b": "c",
 	}
+	p.SESSION["Int64"] = time.Now().UnixNano()
 }
 
 func (p *PageIndex) TestPage() {
@@ -28,4 +30,5 @@ func (p *PageIndex) TestPage() {
 	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["string"])))
 	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["Int"])))
 	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["Map"])))
+	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["Int64"])))
 }
