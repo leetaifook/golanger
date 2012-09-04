@@ -17,7 +17,6 @@ type Base struct {
 	MAX_FORM_SIZE  int64
 	SupportSession bool
 	Session        *session.SessionManager
-	SessionName    string
 	Request        *http.Request
 	ResponseWriter http.ResponseWriter
 	Cookie         []*http.Cookie
@@ -62,9 +61,6 @@ func (b *Base) Init() *Base {
 
 	if b.SupportSession {
 		b.SESSION = b.Session.Get(b.ResponseWriter, b.Request)
-		b.SessionName = b.Session.CookieName
-	} else {
-		b.SESSION = map[string]interface{}{}
 	}
 
 	return b

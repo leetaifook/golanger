@@ -86,7 +86,7 @@ func (p *PageInstall) Index() {
 
 		ioutil.WriteFile(fileInstallLock, []byte("installed"), 0777)
 
-		sessionSign := p.COOKIE[p.SessionName]
+		sessionSign := p.COOKIE[p.Session.CookieName]
 		if sessionSign != "" {
 			p.Session.Clear(sessionSign)
 		}

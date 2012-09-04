@@ -204,9 +204,7 @@ func startApp() {
 
 		controllers.Page.CurrentController = urlPath[len(controllers.Page.Site.Root):]
 		controllers.Page.CurrentAction = methodName
-		controllers.Page.PageLock.Unlock()
 
-		controllers.Page.PageRLock.RLock()
 		pageController := controllers.Page.GetController(controllers.Page.CurrentController)
 		rv := reflect.ValueOf(pageController)
 		rt := rv.Type()
@@ -221,6 +219,9 @@ func startApp() {
 				controllers.Page.NotFoundtController.(*controllers.Page404).Init()
 			}
 		}
+
+		controllers.Page.PageLock.Unlock()
+		controllers.Page.PageRLock.RLock()
 
 		if controllers.Page.Document.Close == false && controllers.Page.Document.Hide == false {
 			if tplFi, err := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); err == nil {

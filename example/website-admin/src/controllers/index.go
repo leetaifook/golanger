@@ -73,7 +73,7 @@ func (p *PageIndex) Login() {
 }
 
 func (p *PageIndex) Logout() {
-	sessionSign := p.COOKIE[p.SessionName]
+	sessionSign := p.COOKIE[p.Session.CookieName]
 	if sessionSign != "" {
 		p.Session.Clear(sessionSign)
 	}
