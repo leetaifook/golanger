@@ -1,12 +1,12 @@
 #!/bin/sh
 APP="website"
 ADDR=":8080"
-C_PWD=`pwd`/..
-GO_PWD=${C_PWD}/../../..
+PWD=`pwd`/..
+GO_PWD=${PWD}/../..
 echo "Building framework..."
-export GOPATH=${GO_PWD}/add-on:${GO_PWD}/framework:${C_PWD}/src/add-on:${C_PWD}
+export GOPATH=${GO_PWD}/add-on:${GO_PWD}/framework:${PWD}/src/add-on:${PWD}
 echo "Building ${APP}"
-cd ${C_PWD}/src
+cd ${PWD}/src
 
 if [ -f ${APP} ]; then
     echo "rm ${APP}"
