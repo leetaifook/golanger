@@ -7,9 +7,12 @@ import (
 	. "golanger/middleware"
 	"golanger/utils"
 	"os"
+	"runtime"
 )
 
 func main() {
+	runtime.GOMAXPROCS(runtime.NumCPU()*2 + 1)
+
 	if sqliteDns, ok := controllers.Page.Config.Database["Sqlite"]; ok && sqliteDns != "" {
 		sqlite, err := utils.NewSqlite(sqliteDns)
 		if err != nil {

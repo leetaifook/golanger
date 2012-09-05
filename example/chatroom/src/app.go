@@ -11,7 +11,6 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
-	"runtime"
 	"strings"
 	_ "templateFunc"
 	"text/template"
@@ -32,7 +31,6 @@ func init() {
 	os.Chdir(filepath.Dir(os.Args[0]))
 	fmt.Println("Listen server address: " + *addr)
 
-	runtime.GOMAXPROCS(runtime.NumCPU()*2 + 1)
 	yamlData, err := ioutil.ReadFile(*configPath)
 	if err != nil {
 		panic(err)
@@ -56,6 +54,33 @@ func init() {
 	controllers.Page.Config.StaticImgDirectory = controllers.Page.Config.StaticDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.StaticImgDirectory
 	controllers.Page.Document.Static = controllers.Page.Site.Root + controllers.Page.Config.StaticDirectory[2:]
 	controllers.Page.Document.Theme = controllers.Page.Config.Theme
+
+	siteRootRightTrim := controllers.Page.Site.Root[:len(controllers.Page.Site.Root)-1]
+
+	if globalCssFi, err := os.Stat(controllers.Page.Config.StaticCssDirectory + "/global/"); err == nil && globalCssFi.IsDir() {
+		DcssPath := controllers.Page.Config.StaticCssDirectory + "global/"
+		controllers.Page.Document.Css["global"] = siteRootRightTrim + DcssPath[1:]
+		if _, err := os.Stat(DcssPath + "global.css"); err == nil {
+			controllers.Page.Document.GlobalCssFile = controllers.Page.Document.Css["global"] + "global.css"
+		}
+	}
+
+	if globalJsFi, err := os.Stat(controllers.Page.Config.StaticJsDirectory + "/global/"); err == nil && globalJsFi.IsDir() {
+		DjsPath := controllers.Page.Config.StaticJsDirectory + "global/"
+		controllers.Page.Document.Js["global"] = siteRootRightTrim + DjsPath[1:]
+		if _, err := os.Stat(DjsPath + "global.js"); err == nil {
+			controllers.Page.Document.GlobalJsFile = controllers.Page.Document.Js["global"] + "global.js"
+		}
+	}
+
+	if globalImgFi, err := os.Stat(controllers.Page.Config.StaticImgDirectory + "/global/"); err == nil && globalImgFi.IsDir() {
+		DimgPath := controllers.Page.Config.StaticImgDirectory + "global/"
+		controllers.Page.Document.Img["global"] = siteRootRightTrim + DimgPath[1:]
+	}
+
+	controllers.Page.SetNotFoundController(&controllers.Page404{controllers.Page})
+	controllers.Page.SetDefaultController(controllers.Page.GetController(controllers.Page.Config.IndexDirectory))
+	controllers.Page.RegisterController(controllers.Page.Site.Root, controllers.Page.DefaultController)
 }
 
 func startApp() {
@@ -68,6 +93,12 @@ func startApp() {
 		staticPath := controllers.Page.Config.StaticDirectory + r.URL.Path[len(controllers.Page.Document.Static):]
 		http.ServeFile(w, r, staticPath)
 	})
+
+	siteRootRightTrim := controllers.Page.Site.Root[:len(controllers.Page.Site.Root)-1]
+	globalTpl := template.New("globalTpl").Funcs(controllers.Page.TemplateFunc)
+	if t, _ := globalTpl.ParseGlob(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory + controllers.Page.Config.TemplateGlobalFile); t != nil {
+		globalTpl = t
+	}
 
 	http.HandleFunc(controllers.Page.Site.Root, func(w http.ResponseWriter, r *http.Request) {
 		controllers.Page.PageLock.Lock()
@@ -84,43 +115,41 @@ func startApp() {
 			controllers.Page.Config.StaticCssDirectory = controllers.Page.Config.StaticDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.StaticCssDirectory
 			controllers.Page.Config.StaticJsDirectory = controllers.Page.Config.StaticDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.StaticJsDirectory
 			controllers.Page.Config.StaticImgDirectory = controllers.Page.Config.StaticDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.StaticImgDirectory
-		}
 
-		if controllers.Page.Site.Root != controllers.Page.Config.SiteRoot {
-			controllers.Page.Site.Root = controllers.Page.Config.SiteRoot
-		}
-
-		controllers.Page.Document.Static = controllers.Page.Site.Root + controllers.Page.Config.StaticDirectory[2:]
-		controllers.Page.Document.Theme = controllers.Page.Config.Theme
-		siteRootRightTrim := controllers.Page.Site.Root[:len(controllers.Page.Site.Root)-1]
-
-		if globalCssFi, err := os.Stat(controllers.Page.Config.StaticCssDirectory + "/global/"); err == nil && globalCssFi.IsDir() {
-			DcssPath := controllers.Page.Config.StaticCssDirectory + "global/"
-			controllers.Page.Document.Css["global"] = siteRootRightTrim + DcssPath[1:]
-			if _, err := os.Stat(DcssPath + "global.css"); err == nil {
-				controllers.Page.Document.GlobalCssFile = controllers.Page.Document.Css["global"] + "global.css"
+			if controllers.Page.Site.Root != controllers.Page.Config.SiteRoot {
+				controllers.Page.UpdateController(controllers.Page.Site.Root, controllers.Page.Config.SiteRoot, controllers.Page.DefaultController)
+				controllers.Page.Site.Root = controllers.Page.Config.SiteRoot
 			}
-		}
 
-		if globalJsFi, err := os.Stat(controllers.Page.Config.StaticJsDirectory + "/global/"); err == nil && globalJsFi.IsDir() {
-			DjsPath := controllers.Page.Config.StaticJsDirectory + "global/"
-			controllers.Page.Document.Js["global"] = siteRootRightTrim + DjsPath[1:]
-			if _, err := os.Stat(DjsPath + "global.js"); err == nil {
-				controllers.Page.Document.GlobalJsFile = controllers.Page.Document.Js["global"] + "global.js"
+			if t, _ := globalTpl.ParseGlob(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory + controllers.Page.Config.TemplateGlobalFile); t != nil {
+				globalTpl = t
 			}
-		}
 
-		if globalImgFi, err := os.Stat(controllers.Page.Config.StaticImgDirectory + "/global/"); err == nil && globalImgFi.IsDir() {
-			DimgPath := controllers.Page.Config.StaticImgDirectory + "global/"
-			controllers.Page.Document.Img["global"] = siteRootRightTrim + DimgPath[1:]
+			if globalCssFi, err := os.Stat(controllers.Page.Config.StaticCssDirectory + "/global/"); err == nil && globalCssFi.IsDir() {
+				DcssPath := controllers.Page.Config.StaticCssDirectory + "global/"
+				controllers.Page.Document.Css["global"] = siteRootRightTrim + DcssPath[1:]
+				if _, err := os.Stat(DcssPath + "global.css"); err == nil {
+					controllers.Page.Document.GlobalCssFile = controllers.Page.Document.Css["global"] + "global.css"
+				}
+			}
+
+			if globalJsFi, err := os.Stat(controllers.Page.Config.StaticJsDirectory + "/global/"); err == nil && globalJsFi.IsDir() {
+				DjsPath := controllers.Page.Config.StaticJsDirectory + "global/"
+				controllers.Page.Document.Js["global"] = siteRootRightTrim + DjsPath[1:]
+				if _, err := os.Stat(DjsPath + "global.js"); err == nil {
+					controllers.Page.Document.GlobalJsFile = controllers.Page.Document.Js["global"] + "global.js"
+				}
+			}
+
+			if globalImgFi, err := os.Stat(controllers.Page.Config.StaticImgDirectory + "/global/"); err == nil && globalImgFi.IsDir() {
+				DimgPath := controllers.Page.Config.StaticImgDirectory + "global/"
+				controllers.Page.Document.Img["global"] = siteRootRightTrim + DimgPath[1:]
+			}
 		}
 
 		controllers.Page.Site.Base.Request = r
 		controllers.Page.Site.Base.ResponseWriter = w
 		controllers.Page.Site.Base.Cookie = r.Cookies()
-		controllers.Page.SetNotFoundController(&controllers.Page404{controllers.Page})
-		controllers.Page.SetDefaultController(controllers.Page.GetController(controllers.Page.Config.IndexDirectory))
-		controllers.Page.RegisterController(controllers.Page.Site.Root, controllers.Page.DefaultController)
 
 		urlPath, fileName := filepath.Split(r.URL.Path)
 		if urlPath == controllers.Page.Site.Root {
@@ -175,9 +204,7 @@ func startApp() {
 
 		controllers.Page.CurrentController = urlPath[len(controllers.Page.Site.Root):]
 		controllers.Page.CurrentAction = methodName
-		controllers.Page.PageLock.Unlock()
 
-		controllers.Page.PageRLock.RLock()
 		pageController := controllers.Page.GetController(controllers.Page.CurrentController)
 		rv := reflect.ValueOf(pageController)
 		rt := rv.Type()
@@ -193,13 +220,12 @@ func startApp() {
 			}
 		}
 
+		controllers.Page.PageLock.Unlock()
+		controllers.Page.PageRLock.RLock()
+
 		if controllers.Page.Document.Close == false && controllers.Page.Document.Hide == false {
 			if tplFi, err := os.Stat(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); err == nil {
-				globalTemplate := template.New("globalTpl").Funcs(controllers.Page.TemplateFunc)
-				if t, _ := globalTemplate.ParseGlob(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Config.TemplateGlobalDirectory + controllers.Page.Config.TemplateGlobalFile); t != nil {
-					globalTemplate = t
-				}
-
+				globalTemplate, _ := globalTpl.Clone()
 				if pageTemplate, err := globalTemplate.New(filepath.Base(controllers.Page.Template)).ParseFiles(controllers.Page.Config.TemplateDirectory + controllers.Page.Config.ThemeDirectory + controllers.Page.Template); err == nil {
 					templateVar := map[string]interface{}{
 						"G":        controllers.Page.Base.GET,
@@ -286,7 +312,6 @@ func startApp() {
 				}
 			}
 		}
-
 		controllers.Page.PageRLock.RUnlock()
 
 		controllers.Page.PageLock.Lock()

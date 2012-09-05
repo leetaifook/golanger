@@ -12,7 +12,8 @@ import (
 
 type SessionManager struct {
 	CookieName    string
-	mutex         *sync.RWMutex
+	rmutex        sync.RWMutex
+	mutex         sync.Mutex
 	sessions      map[string][2]map[string]interface{}
 	expires       int
 	timerDuration time.Duration
@@ -33,7 +34,6 @@ func New(cookieName string, expires int, timerDuration time.Duration) *SessionMa
 
 	s := &SessionManager{
 		CookieName:    cookieName,
-		mutex:         &sync.RWMutex{},
 		sessions:      map[string][2]map[string]interface{}{},
 		expires:       expires,
 		timerDuration: timerDuration,
@@ -45,21 +45,22 @@ func New(cookieName string, expires int, timerDuration time.Duration) *SessionMa
 }
 
 func (s *SessionManager) Get(rw http.ResponseWriter, req *http.Request) map[string]interface{} {
-	s.mutex.RLock()
-	defer s.mutex.RUnlock()
 	var sessionSign string
+
 	if c, err := req.Cookie(s.CookieName); err == nil {
 		sessionSign = c.Value
+		s.rmutex.RLock()
 		if sessionValue, ok := s.sessions[sessionSign]; ok {
+			defer s.rmutex.RUnlock()
 			return sessionValue[1]
 		}
+
+		s.rmutex.RUnlock()
 	}
 
-	s.mutex.RUnlock()
 	s.mutex.Lock()
+	defer s.mutex.Unlock()
 	sessionSign = s.new(rw)
-	s.mutex.Unlock()
-	s.mutex.RLock()
 
 	return s.sessions[sessionSign][1]
 }
@@ -98,14 +99,17 @@ func (s *SessionManager) Clear(sessionSign string) {
 }
 
 func (s *SessionManager) GC() {
-	s.mutex.Lock()
-	for sessionSign, _ := range s.sessions {
-		if (s.sessions[sessionSign][0]["create"].(int64) + int64(s.expires)) <= time.Now().Unix() {
+	s.rmutex.RLock()
+	for sessionSign, sess := range s.sessions {
+		if (sess[0]["create"].(int64) + int64(s.expires)) <= time.Now().Unix() {
+			s.mutex.Lock()
 			delete(s.sessions, sessionSign)
+			s.mutex.Unlock()
 		}
 	}
 
-	s.mutex.Unlock()
+	s.rmutex.RUnlock()
+
 	time.AfterFunc(s.timerDuration, func() { s.GC() })
 }
 
