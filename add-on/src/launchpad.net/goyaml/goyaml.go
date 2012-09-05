@@ -93,7 +93,6 @@ func Unmarshal(in []byte, out interface{}) (err error) {
 	if node != nil {
 		d.unmarshal(node, reflect.ValueOf(out))
 	}
-
 	return nil
 }
 
