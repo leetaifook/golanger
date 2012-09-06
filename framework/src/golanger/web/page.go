@@ -68,7 +68,8 @@ func (p *Page) Init() {
 	p.ResponseWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
-func (p *Page) Reset() {
+func (p *Page) Load(configPath string) {
+	p.Config.Load(configPath)
 	p.reset(false)
 }
 
@@ -81,6 +82,8 @@ func (p *Page) reset(update bool) {
 		if p.Document.Theme != p.Config.Theme {
 			p.Document.Theme = p.Config.Theme
 		}
+
+		fmt.Println(p.Config.StaticDirectory)
 
 		if p.Site.Root == p.Config.SiteRoot {
 			return

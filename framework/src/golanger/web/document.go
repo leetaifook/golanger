@@ -32,7 +32,7 @@ func (d *Document) Reset() {
 	globalCss, okCss := document.Css["global"]
 	globalJs, okJs := document.Js["global"]
 	globalImg, okImg := document.Img["global"]
-	d = &Document{
+	*d = Document{
 		Static:        document.Static,
 		Theme:         document.Theme,
 		GlobalCssFile: document.GlobalCssFile,

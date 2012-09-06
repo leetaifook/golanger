@@ -27,7 +27,6 @@ func main() {
 	fmt.Println("Read configuration file success, fithpath: " + filepath.Join(filepath.Dir(os.Args[0]), *configPath))
 
 	App.Load(*configPath)
-	App.Reset()
 
 	if sqliteDns, ok := App.Database["Sqlite"]; ok && sqliteDns != "" {
 		sqlite, err := utils.NewSqlite(sqliteDns)

@@ -24,8 +24,8 @@ func main() {
 	os.Chdir(filepath.Dir(os.Args[0]))
 	fmt.Println("Listen server address: " + *addr)
 	fmt.Println("Read configuration file success, fithpath: " + filepath.Join(filepath.Dir(os.Args[0]), *configPath))
+
 	App.Load(*configPath)
-	App.Reset()
 
 	if mongoDns, ok := App.Database["MongoDB"]; ok && mongoDns != "" {
 		mgoServer := utils.NewMongo(mongoDns)
