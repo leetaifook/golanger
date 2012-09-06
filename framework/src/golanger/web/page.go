@@ -83,7 +83,9 @@ func (p *Page) reset(update bool) {
 			p.Document.Theme = p.Config.Theme
 		}
 
-		fmt.Println(p.Config.StaticDirectory)
+		if p.Document.Static != p.Config.SiteRoot+p.Config.StaticDirectory[2:] {
+			p.Document.Static = p.Config.SiteRoot + p.Config.StaticDirectory[2:]
+		}
 
 		if p.Site.Root == p.Config.SiteRoot {
 			return
@@ -91,7 +93,6 @@ func (p *Page) reset(update bool) {
 			p.SetDefaultController(p.GetController(p.Config.IndexDirectory))
 			p.UpdateController(p.Site.Root, p.Config.SiteRoot, p.DefaultController)
 			p.Site.Root = p.Config.SiteRoot
-			p.Document.Static = p.Site.Root + p.Config.StaticDirectory[2:]
 		}
 	} else {
 		p.Site.Base.SupportSession = p.Config.SupportSession
