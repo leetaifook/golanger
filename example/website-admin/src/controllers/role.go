@@ -83,7 +83,7 @@ func (p *PageRole) Index() {
 	}
 
 	modules := map[string][]string{}
-	rAppType := reflect.TypeOf(Page)
+	rAppType := reflect.TypeOf(App)
 	for _, module := range colModules {
 		if i, ok := p.Controller[module.Path]; ok {
 			modules[module.Path] = []string{}

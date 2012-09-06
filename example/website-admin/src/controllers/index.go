@@ -35,8 +35,8 @@ func (p *PageIndex) Login() {
 				"message": "",
 			}
 
-			p.ResponseWriter.Header().Set("Content-Type", "application/json")
-			p.ResponseWriter.Header().Set("Cache-Control", "no-store")
+			p.ResponseWriter.Header().Add("Content-Type", "application/json")
+			p.ResponseWriter.Header().Add("Cache-Control", "no-store")
 
 			username := p.POST["username"]
 			password := p.POST["password"]

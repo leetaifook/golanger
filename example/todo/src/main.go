@@ -25,6 +25,9 @@ func main() {
 	fmt.Println("Listen server address: " + *addr)
 	fmt.Println("Read configuration file success, fithpath: " + filepath.Join(filepath.Dir(os.Args[0]), *configPath))
 
+	App.Load(*configPath)
+	App.Reset()
+
 	sqlite, err := utils.NewSqlite("./data/todo.db")
 	if err != nil {
 		fmt.Println(err)
@@ -34,8 +37,6 @@ func main() {
 	defer sqlite.Close()
 	Middleware.Add("db", sqlite)
 
-	App.Load(*configPath)
-	App.Reset()
 	App.HandleFavicon()
 	App.HandleStatic()
 	App.ListenAndServe(*addr)

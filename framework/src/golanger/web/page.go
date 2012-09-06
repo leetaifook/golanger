@@ -209,12 +209,13 @@ func (p *Page) HandleStatic() {
 func (p *Page) handleRoute() {
 	http.HandleFunc(p.Site.Root, func(w http.ResponseWriter, r *http.Request) {
 		p.pageLock.Lock()
+		p.Site.Base.Request = r
+		p.Site.Base.ResponseWriter = w
+
 		if p.Config.Reload() {
 			p.reset(true)
 		}
 
-		p.Site.Base.Request = r
-		p.Site.Base.ResponseWriter = w
 		p.Site.Base.Cookie = r.Cookies()
 
 		urlPath, fileName := filepath.Split(r.URL.Path)

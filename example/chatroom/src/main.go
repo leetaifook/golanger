@@ -24,11 +24,12 @@ func main() {
 	fmt.Println("Listen server address: " + *addr)
 	fmt.Println("Read configuration file success, fithpath: " + filepath.Join(filepath.Dir(os.Args[0]), *configPath))
 
+	App.Load(*configPath)
+	App.Reset()
+
 	http.Handle("/chat", websocket.Handler(BuildConnection))
 	go InitChatRoom()
 
-	App.Load(*configPath)
-	App.Reset()
 	App.HandleFavicon()
 	App.HandleStatic()
 	App.ListenAndServe(*addr)

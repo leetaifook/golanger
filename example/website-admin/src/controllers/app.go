@@ -2,7 +2,6 @@ package controllers
 
 import (
 	. "golanger/middleware"
-	"golanger/session"
 	"golanger/utils"
 	"golanger/web"
 	"labix.org/v2/mgo/bson"
@@ -10,12 +9,6 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
-	"text/template"
-	"time"
-)
-
-const (
-	MAX_FORM_SIZE = 2 << 20 // 2MB => 2的20次方 乘以 2 =》 2 * 1024 * 1024
 )
 
 type Application struct {

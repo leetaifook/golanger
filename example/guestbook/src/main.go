@@ -25,14 +25,15 @@ func main() {
 	fmt.Println("Listen server address: " + *addr)
 	fmt.Println("Read configuration file success, fithpath: " + filepath.Join(filepath.Dir(os.Args[0]), *configPath))
 
+	App.Load(*configPath)
+	App.Reset()
+
 	if mongoDns, ok := App.Database["MongoDB"]; ok && mongoDns != "" {
 		mgoServer := utils.NewMongo(mongoDns)
 		defer mgoServer.Close()
 		Middleware.Add("db", mgoServer)
 	}
 
-	App.Load(*configPath)
-	App.Reset()
 	App.HandleFavicon()
 	App.HandleStatic()
 	App.ListenAndServe(*addr)

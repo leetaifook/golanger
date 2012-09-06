@@ -25,6 +25,7 @@ func main() {
 
 	App.Load(*configPath)
 	App.Reset()
+
 	App.HandleFavicon()
 	App.HandleStatic()
 	App.ListenAndServe(*addr)
