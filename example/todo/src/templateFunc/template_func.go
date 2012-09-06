@@ -6,7 +6,7 @@ package templateFunc
 )
 
 func init() {
-	Page.AddTemplateFunc("GetTimeToStr", func(tm int64) string {
+	App.AddTemplateFunc("GetTimeToStr", func(tm int64) string {
 		return utils.NewTime().GetTimeToStr(tm)
 	})
 }

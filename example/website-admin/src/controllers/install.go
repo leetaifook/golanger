@@ -11,17 +11,17 @@ import (
 )
 
 type PageInstall struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("install/", &PageInstall{Page})
+	App.RegisterController("install/", &PageInstall{App})
 }
 
 func (p *PageInstall) Init() {
 	p.OffLogin = true
 	p.OffRight = true
-	p.App.Init()
+	p.Application.Init()
 }
 
 func (p *PageInstall) Index() {

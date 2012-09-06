@@ -11,15 +11,15 @@ import (
 )
 
 type PageRole struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("role/", &PageRole{Page})
+	App.RegisterController("role/", &PageRole{App})
 }
 
 func (p *PageRole) Init() {
-	p.App.Init()
+	p.Application.Init()
 
 	p.Func["strJoin"] = strings.Join
 	p.Func["jsonMarshal"] = func(i interface{}) string {
@@ -83,7 +83,7 @@ func (p *PageRole) Index() {
 	}
 
 	modules := map[string][]string{}
-	rAppType := reflect.TypeOf(Page)
+	rAppType := reflect.TypeOf(App)
 	for _, module := range colModules {
 		if i, ok := p.Controller[module.Path]; ok {
 			modules[module.Path] = []string{}
