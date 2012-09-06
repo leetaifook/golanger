@@ -26,9 +26,10 @@ type Page struct {
 	TemplateFunc        template.FuncMap
 	*Config
 	*Document
-	pageRLock sync.RWMutex
-	pageLock  sync.Mutex
-	globalTpl *template.Template
+	supportStatic bool
+	rmutex        sync.RWMutex
+	mutex         sync.Mutex
+	globalTpl     *template.Template
 }
 
 type PageParam struct {
@@ -66,6 +67,64 @@ func NewPage(param PageParam) *Page {
 func (p *Page) Init() {
 	p.Site.Init()
 	p.ResponseWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
+}
+
+func (p *Page) SetDefaultController(c interface{}) *Page {
+	p.DefaultController = c
+
+	return p
+}
+
+func (p *Page) SetNotFoundController(c interface{}) *Page {
+	p.NotFoundtController = c
+
+	return p
+}
+
+func (p *Page) RegisterController(relUrlPath string, i interface{}) *Page {
+	if _, ok := p.Controller[relUrlPath]; !ok {
+		p.Controller[relUrlPath] = i
+	}
+
+	return p
+}
+
+func (p *Page) UpdateController(oldUrlPath, relUrlPath string, i interface{}) *Page {
+	delete(p.Controller, oldUrlPath)
+	p.Controller[relUrlPath] = i
+
+	return p
+}
+
+func (p *Page) GetController(urlPath string) (i interface{}) {
+	var relUrlPath string
+	if strings.HasPrefix(urlPath, p.Site.Root) {
+		relUrlPath = urlPath[len(p.Site.Root):]
+	} else {
+		relUrlPath = urlPath
+	}
+
+	i, ok := p.Controller[relUrlPath]
+	if !ok {
+		i = p.NotFoundtController
+	}
+
+	return
+}
+
+func (p *Page) AddTemplateFunc(name string, i interface{}) {
+	_, ok := p.TemplateFunc[name]
+	if !ok {
+		p.TemplateFunc[name] = i
+	} else {
+		fmt.Println("func:" + name + " be added,do not reepeat to add")
+	}
+}
+
+func (p *Page) DelTemplateFunc(name string) {
+	if _, ok := p.TemplateFunc[name]; ok {
+		delete(p.TemplateFunc, name)
+	}
 }
 
 func (p *Page) Load(configPath string) {
@@ -132,71 +191,170 @@ func (p *Page) reset(update bool) {
 	}
 }
 
-func (p *Page) SetDefaultController(c interface{}) *Page {
-	p.DefaultController = c
-
-	return p
-}
-
-func (p *Page) SetNotFoundController(c interface{}) *Page {
-	p.NotFoundtController = c
-
-	return p
-}
-
-func (p *Page) SetTemplate(template string) *Page {
-	p.Template = template
-
-	return p
-}
-
-func (p *Page) RegisterController(relUrlPath string, i interface{}) *Page {
-	if _, ok := p.Controller[relUrlPath]; !ok {
-		p.Controller[relUrlPath] = i
+func (p *Page) setTemplate(path string) {
+	urlPath, fileName := filepath.Split(path)
+	if urlPath == p.Site.Root {
+		urlPath = p.Site.Root + p.Config.IndexDirectory
 	}
 
-	return p
+	if fileName == "" {
+		fileName = p.Config.IndexPage
+	}
+
+	p.Template = urlPath[len(p.Site.Root):] + fileName
 }
 
-func (p *Page) UpdateController(oldUrlPath, relUrlPath string, i interface{}) *Page {
-	delete(p.Controller, oldUrlPath)
-	p.Controller[relUrlPath] = i
+func (p *Page) routeController() {
+	urlPath, fileName := filepath.Split(p.Template)
+	p.CurrentController = urlPath
+	p.CurrentAction = strings.Replace(strings.Title(strings.Replace(fileName[:len(fileName)-len(filepath.Ext(fileName))], "_", " ", -1)), " ", "", -1)
 
-	return p
-}
+	pageController := p.GetController(p.CurrentController)
+	rv := reflect.ValueOf(pageController)
+	rt := rv.Type()
+	if _, ok := rt.MethodByName("Init"); ok {
+		rv.MethodByName("Init").Call([]reflect.Value{})
+	}
 
-func (p *Page) GetController(urlPath string) (i interface{}) {
-	var relUrlPath string
-	if strings.HasPrefix(urlPath, p.Site.Root) {
-		relUrlPath = urlPath[len(p.Site.Root):]
+	if _, ok := rt.MethodByName(p.CurrentAction); ok && p.CurrentAction != "Init" && p.Document.Close == false {
+		rv.MethodByName(p.CurrentAction).Call([]reflect.Value{})
 	} else {
-		relUrlPath = urlPath
-	}
-
-	i, ok := p.Controller[relUrlPath]
-	if !ok {
-		i = p.NotFoundtController
-	}
-
-	return
-}
-
-func (p *Page) AddTemplateFunc(name string, i interface{}) {
-	_, ok := p.TemplateFunc[name]
-	if !ok {
-		p.TemplateFunc[name] = i
-	} else {
-		fmt.Println("func:" + name + " be added,do not reepeat to add")
+		if !strings.Contains(rt.String(), "Page404") {
+			notFountRV := reflect.ValueOf(p.NotFoundtController)
+			notFountRV.MethodByName("Init").Call([]reflect.Value{})
+		}
 	}
 }
 
-func (p *Page) DelTemplateFunc(name string) {
-	if _, ok := p.TemplateFunc[name]; ok {
-		delete(p.TemplateFunc, name)
+func (p *Page) setStaticDocument() {
+	urlPath, fileName := filepath.Split(p.Site.Root + p.Template)
+	fileNameNoExt := fileName[:len(fileName)-len(filepath.Ext(fileName))]
+	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
+
+	if cssFi, err := os.Stat(p.Config.StaticCssDirectory + urlPath); err == nil && cssFi.IsDir() {
+		cssPath := strings.Trim(urlPath, "/")
+		DcssPath := p.Config.StaticCssDirectory + cssPath + "/"
+		p.Document.Css[cssPath] = siteRootRightTrim + DcssPath[1:]
+		if _, err := os.Stat(DcssPath + "global.css"); err == nil {
+			p.Document.GlobalIndexCssFile = p.Document.Css[cssPath] + "global.css"
+		}
+
+		if _, err := os.Stat(DcssPath + fileNameNoExt + ".css"); err == nil {
+			p.Document.IndexCssFile = p.Document.Css[cssPath] + fileNameNoExt + ".css"
+		}
+
+	}
+
+	if jsFi, err := os.Stat(p.Config.StaticJsDirectory + urlPath); err == nil && jsFi.IsDir() {
+		jsPath := strings.Trim(urlPath, "/")
+		DjsPath := p.Config.StaticJsDirectory + jsPath + "/"
+		p.Document.Js[jsPath] = siteRootRightTrim + DjsPath[1:]
+		if _, err := os.Stat(DjsPath + "global.js"); err == nil {
+			p.Document.GlobalIndexJsFile = p.Document.Js[jsPath] + "global.js"
+		}
+
+		if _, err := os.Stat(DjsPath + fileNameNoExt + ".js"); err == nil {
+			p.Document.IndexJsFile = p.Document.Js[jsPath] + fileNameNoExt + ".js"
+		}
+	}
+
+	if imgFi, err := os.Stat(p.Config.StaticImgDirectory + urlPath); err == nil && imgFi.IsDir() {
+		imgPath := strings.Trim(urlPath, "/")
+		DimgPath := p.Config.StaticImgDirectory + imgPath + "/"
+		p.Document.Img[imgPath] = siteRootRightTrim + DimgPath[1:]
+	}
+}
+
+func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
+	if p.Config.AutoGenerateHtml {
+		p.Document.GenerateHtml = true
+	}
+
+	if p.Document.Close == false && p.Document.Hide == false {
+		if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
+			globalTemplate, _ := p.globalTpl.Clone()
+			if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).ParseFiles(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
+				templateVar := map[string]interface{}{
+					"G":        p.Base.GET,
+					"P":        p.Base.POST,
+					"C":        p.Base.COOKIE,
+					"S":        p.Base.SESSION,
+					"Siteroot": p.Site.Root,
+					"Version":  p.Site.Version,
+					"Template": p.Template,
+					"D":        p.Document,
+					"Config":   p.Config.M,
+				}
+
+				if p.Document.GenerateHtml {
+
+					htmlFile := p.Config.StaticDirectory + p.Config.HtmlDirectory + p.Site.Root + p.Template
+					htmlDir := filepath.Dir(htmlFile)
+					if htmlDirFi, err := os.Stat(htmlDir); err != nil || !htmlDirFi.IsDir() {
+						os.MkdirAll(htmlDir, 0777)
+					}
+
+					var doWrite bool
+					if p.Config.AutoGenerateHtml {
+						if p.Config.AutoGenerateHtmlCycleTime <= 0 {
+							doWrite = true
+						} else {
+							if htmlFi, err := os.Stat(htmlFile); err != nil {
+								doWrite = true
+							} else {
+								switch {
+								case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
+									doWrite = true
+								case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
+									doWrite = true
+								case time.Now().Unix()-htmlFi.ModTime().Unix() >= p.Config.AutoGenerateHtmlCycleTime:
+									doWrite = true
+								default:
+									globalTplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Config.TemplateGlobalDirectory)
+									if err == nil {
+										if globalTplFi.ModTime().Unix() >= htmlFi.ModTime().Unix() {
+											doWrite = true
+										}
+									}
+								}
+							}
+						}
+					}
+
+					if doWrite {
+						if file, err := os.OpenFile(htmlFile, os.O_CREATE|os.O_WRONLY, 0777); err == nil {
+							templateVar["Siteroot"] = p.Config.SiteRoot + htmlDir + "/"
+							p.mutex.Lock()
+							pageTemplate.Execute(file, templateVar)
+							p.mutex.Unlock()
+						}
+					}
+
+					if p.Config.AutoJumpToHtml {
+						http.Redirect(w, r, p.Site.Root+htmlFile[2:], http.StatusFound)
+					} else {
+						err := pageTemplate.Execute(w, templateVar)
+						if err != nil {
+							log.Println(err)
+						}
+					}
+				} else {
+					err := pageTemplate.Execute(w, templateVar)
+					if err != nil {
+						log.Println(err)
+						w.Write([]byte(fmt.Sprint(err)))
+					}
+				}
+			} else {
+				log.Println(err)
+				w.Write([]byte(fmt.Sprint(err)))
+			}
+		}
 	}
 }
 
 func (p *Page) HandleFavicon() {
+	p.supportStatic = true
 	http.HandleFunc(p.Site.Root+"favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		staticPath := p.Config.StaticDirectory + p.Config.ThemeDirectory + "favicon.ico"
 		http.ServeFile(w, r, staticPath)
@@ -204,6 +362,7 @@ func (p *Page) HandleFavicon() {
 }
 
 func (p *Page) HandleStatic() {
+	p.supportStatic = true
 	http.HandleFunc(p.Document.Static, func(w http.ResponseWriter, r *http.Request) {
 		staticPath := p.Config.StaticDirectory + r.URL.Path[len(p.Document.Static):]
 		http.ServeFile(w, r, staticPath)
@@ -212,184 +371,32 @@ func (p *Page) HandleStatic() {
 
 func (p *Page) handleRoute() {
 	http.HandleFunc(p.Site.Root, func(w http.ResponseWriter, r *http.Request) {
-		p.pageLock.Lock()
+		p.mutex.Lock()
 		p.Site.Base.Request = r
 		p.Site.Base.ResponseWriter = w
+		p.Site.Base.Cookie = r.Cookies()
 
 		if p.Config.Reload() {
 			p.reset(true)
 		}
 
-		p.Site.Base.Cookie = r.Cookies()
+		p.setTemplate(r.URL.Path)
+		p.routeController()
+		p.mutex.Unlock()
 
-		urlPath, fileName := filepath.Split(r.URL.Path)
-		if urlPath == p.Site.Root {
-			urlPath = p.Site.Root + p.Config.IndexDirectory
+		p.rmutex.RLock()
+		if p.supportStatic {
+			p.mutex.Lock()
+			p.setStaticDocument()
+			p.mutex.Unlock()
+
+			p.routeTemplate(w, r)
 		}
+		p.rmutex.RUnlock()
 
-		if fileName == "" {
-			fileName = p.Config.IndexPage
-		}
-
-		p.Template = urlPath[len(p.Site.Root):] + fileName
-		fileExt := filepath.Ext(fileName)
-		fileNameNoExt := fileName[:len(fileName)-len(fileExt)]
-		methodName := strings.Replace(strings.Title(strings.Replace(fileNameNoExt, "_", " ", -1)), " ", "", -1)
-		siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
-
-		if cssFi, err := os.Stat(p.Config.StaticCssDirectory + urlPath); err == nil && cssFi.IsDir() {
-			cssPath := strings.Trim(urlPath, "/")
-			DcssPath := p.Config.StaticCssDirectory + cssPath + "/"
-			p.Document.Css[cssPath] = siteRootRightTrim + DcssPath[1:]
-			if _, err := os.Stat(DcssPath + "global.css"); err == nil {
-				p.Document.GlobalIndexCssFile = p.Document.Css[cssPath] + "global.css"
-			}
-
-			if _, err := os.Stat(DcssPath + fileNameNoExt + ".css"); err == nil {
-				p.Document.IndexCssFile = p.Document.Css[cssPath] + fileNameNoExt + ".css"
-			}
-
-		}
-
-		if jsFi, err := os.Stat(p.Config.StaticJsDirectory + urlPath); err == nil && jsFi.IsDir() {
-			jsPath := strings.Trim(urlPath, "/")
-			DjsPath := p.Config.StaticJsDirectory + jsPath + "/"
-			p.Document.Js[jsPath] = siteRootRightTrim + DjsPath[1:]
-			if _, err := os.Stat(DjsPath + "global.js"); err == nil {
-				p.Document.GlobalIndexJsFile = p.Document.Js[jsPath] + "global.js"
-			}
-
-			if _, err := os.Stat(DjsPath + fileNameNoExt + ".js"); err == nil {
-				p.Document.IndexJsFile = p.Document.Js[jsPath] + fileNameNoExt + ".js"
-			}
-		}
-
-		if imgFi, err := os.Stat(p.Config.StaticImgDirectory + urlPath); err == nil && imgFi.IsDir() {
-			imgPath := strings.Trim(urlPath, "/")
-			DimgPath := p.Config.StaticImgDirectory + imgPath + "/"
-			p.Document.Img[imgPath] = siteRootRightTrim + DimgPath[1:]
-		}
-
-		if p.Config.AutoGenerateHtml {
-			p.Document.GenerateHtml = true
-		}
-
-		p.CurrentController = urlPath[len(p.Site.Root):]
-		p.CurrentAction = methodName
-
-		pageController := p.GetController(p.CurrentController)
-		rv := reflect.ValueOf(pageController)
-		rt := rv.Type()
-		if _, ok := rt.MethodByName("Init"); ok {
-			rv.MethodByName("Init").Call([]reflect.Value{})
-		}
-
-		if _, ok := rt.MethodByName(p.CurrentAction); ok && p.CurrentAction != "Init" && p.Document.Close == false {
-			rv.MethodByName(p.CurrentAction).Call([]reflect.Value{})
-		} else {
-			if !strings.Contains(rt.String(), "Page404") {
-				notFountRV := reflect.ValueOf(p.NotFoundtController)
-				notFountRV.MethodByName("Init").Call([]reflect.Value{})
-			}
-		}
-
-		p.pageLock.Unlock()
-		p.pageRLock.RLock()
-
-		if p.Document.Close == false && p.Document.Hide == false {
-			if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
-				globalTemplate, _ := p.globalTpl.Clone()
-				if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).ParseFiles(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
-					templateVar := map[string]interface{}{
-						"G":        p.Base.GET,
-						"P":        p.Base.POST,
-						"C":        p.Base.COOKIE,
-						"S":        p.Base.SESSION,
-						"Siteroot": p.Site.Root,
-						"Version":  p.Site.Version,
-						"Template": p.Template,
-						"D":        p.Document,
-						"Config":   p.Config.M,
-					}
-
-					if p.Document.GenerateHtml {
-						htmlFile := p.Config.StaticDirectory + p.Config.HtmlDirectory + urlPath + fileName
-						htmlDir := filepath.Dir(htmlFile)
-						if htmlDirFi, err := os.Stat(htmlDir); err != nil || !htmlDirFi.IsDir() {
-							os.MkdirAll(htmlDir, 0777)
-						}
-
-						var doWrite bool
-						if p.Config.AutoGenerateHtml {
-							if p.Config.AutoGenerateHtmlCycleTime <= 0 {
-								doWrite = true
-							} else {
-								if htmlFi, err := os.Stat(htmlFile); err != nil {
-									doWrite = true
-								} else {
-									switch {
-									case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
-										doWrite = true
-									case tplFi.ModTime().Unix() >= htmlFi.ModTime().Unix():
-										doWrite = true
-									case time.Now().Unix()-htmlFi.ModTime().Unix() >= p.Config.AutoGenerateHtmlCycleTime:
-										doWrite = true
-									default:
-										globalTplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Config.TemplateGlobalDirectory)
-										if err == nil {
-											if globalTplFi.ModTime().Unix() >= htmlFi.ModTime().Unix() {
-												doWrite = true
-											}
-										}
-									}
-								}
-							}
-						}
-
-						if doWrite {
-							if file, err := os.OpenFile(htmlFile, os.O_CREATE|os.O_WRONLY, 0777); err == nil {
-								templateVar["Siteroot"] = p.Config.SiteRoot + htmlDir + "/"
-								p.pageLock.Lock()
-								pageTemplate.Execute(file, templateVar)
-								p.pageLock.Unlock()
-							}
-						}
-
-						if p.Config.AutoJumpToHtml {
-							p.pageLock.Lock()
-							http.Redirect(w, r, p.Site.Root+htmlFile[2:], http.StatusFound)
-							p.pageLock.Unlock()
-						} else {
-							p.pageLock.Lock()
-							err := pageTemplate.Execute(w, templateVar)
-							p.pageLock.Unlock()
-							if err != nil {
-								log.Println(err)
-							}
-						}
-					} else {
-						p.pageLock.Lock()
-						err := pageTemplate.Execute(w, templateVar)
-						if err != nil {
-							log.Println(err)
-							w.Write([]byte(fmt.Sprint(err)))
-						}
-
-						p.pageLock.Unlock()
-					}
-				} else {
-					log.Println(err)
-					p.pageLock.Lock()
-					w.Write([]byte(fmt.Sprint(err)))
-					p.pageLock.Unlock()
-				}
-			}
-		}
-		p.pageRLock.RUnlock()
-
-		p.pageLock.Lock()
+		p.mutex.Lock()
 		p.Document.Reset()
-		p.pageLock.Unlock()
+		p.mutex.Unlock()
 	})
 }
 
