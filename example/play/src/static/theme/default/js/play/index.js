@@ -204,7 +204,7 @@ function playground(opts) {
 	$(opts['toysEl']).bind('change', function() {
 		var toy = $(this).val();
 		loading();
-		$.ajax("/doc/play/"+toy, {
+		$.ajax("http://golang.org/doc/play/"+toy, {
 			processData: false,
 			type: "GET",
 			complete: function(xhr) {
