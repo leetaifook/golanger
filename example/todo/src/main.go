@@ -26,7 +26,6 @@ func main() {
 	fmt.Println("Read configuration file success, fithpath: " + filepath.Join(filepath.Dir(os.Args[0]), *configPath))
 
 	App.Load(*configPath)
-	App.Reset()
 
 	sqlite, err := utils.NewSqlite("./data/todo.db")
 	if err != nil {

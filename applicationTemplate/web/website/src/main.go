@@ -24,7 +24,6 @@ func main() {
 	fmt.Println("Read configuration file success, fithpath: " + filepath.Join(filepath.Dir(os.Args[0]), *configPath))
 
 	App.Load(*configPath)
-	App.Reset()
 
 	App.HandleFavicon()
 	App.HandleStatic()

@@ -57,13 +57,12 @@ func NewConfig() *Config {
 }
 
 func (c *Config) Load(configPath string) {
-	c.configPath = configPath
 	yamlData, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		panic(err)
 	}
 
-	err = goyaml.Unmarshal(yamlData, &c)
+	err = goyaml.Unmarshal(yamlData, c)
 	if err != nil {
 		panic(err)
 	}
@@ -74,17 +73,20 @@ func (c *Config) Load(configPath string) {
 	c.StaticJsDirectory = c.StaticDirectory + c.ThemeDirectory + c.StaticJsDirectory
 	c.StaticImgDirectory = c.StaticDirectory + c.ThemeDirectory + c.StaticImgDirectory
 
+	c.configPath = configPath
 	yamlFi, _ := os.Stat(configPath)
 	c.configLastModTime = yamlFi.ModTime().Unix()
 }
 
 func (c *Config) Reload() bool {
 	var b bool
-	yamlFi, _ := os.Stat(c.configPath)
+	configPath := c.configPath
+	yamlFi, _ := os.Stat(configPath)
 	if yamlFi.ModTime().Unix() > c.configLastModTime {
-		yamlData, _ := ioutil.ReadFile(c.configPath)
-		c = NewConfig()
-		goyaml.Unmarshal(yamlData, &c)
+		yamlData, _ := ioutil.ReadFile(configPath)
+		*c = *NewConfig()
+		goyaml.Unmarshal(yamlData, c)
+		c.configPath = configPath
 		c.configLastModTime = yamlFi.ModTime().Unix()
 		c.UploadDirectory = c.StaticDirectory + c.UploadDirectory
 		c.ThemeDirectory = c.ThemeDirectory + c.Theme + "/"
