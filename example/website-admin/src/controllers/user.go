@@ -9,11 +9,11 @@ import (
 )
 
 type PageUser struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("user/", &PageUser{Page})
+	App.RegisterController("user/", &PageUser{App})
 }
 
 // Show user list

@@ -5,7 +5,11 @@ import (
 )
 
 type Page404 struct {
-	*App
+	*Application
+}
+
+func init() {
+	App.SetNotFoundController(&Page404{App})
 }
 
 func (p *Page404) Init() {

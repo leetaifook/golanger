@@ -9,11 +9,11 @@ import (
 )
 
 type PageModule struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("module/", &PageModule{Page})
+	App.RegisterController("module/", &PageModule{App})
 }
 
 func (p *PageModule) Index() {

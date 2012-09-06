@@ -18,13 +18,17 @@ const (
 	MAX_FORM_SIZE = 2 << 20 // 2MB => 2的20次方 乘以 2 =》 2 * 1024 * 1024
 )
 
-type App struct {
+type Application struct {
 	*web.Page
 	OffLogin bool
 	OffRight bool
 }
 
-func (a *App) Init() {
+var App = &Application{
+	Page: web.NewPage(web.PageParam{}),
+}
+
+func (a *Application) Init() {
 	a.Page.Init()
 
 	if a.OffLogin || a.checkLogin() {
@@ -46,7 +50,7 @@ func (a *App) Init() {
 	a.OffRight = false
 }
 
-func (a *App) getRole() {
+func (a *Application) getRole() {
 	if username, nok := a.SESSION[a.Page.Config.M["SESSION_UNAME"].(string)]; nok {
 		if _, ok := a.SESSION["role"]; !ok {
 			mgoServer := Middleware.Get("db").(*utils.Mongo)
@@ -73,7 +77,7 @@ func (a *App) getRole() {
 
 }
 
-func (a *App) getModule(showAll bool) {
+func (a *Application) getModule(showAll bool) {
 	if _, ok := a.SESSION["modules"]; !ok {
 		mgoServer := Middleware.Get("db").(*utils.Mongo)
 		cols := []ModelModule{}
@@ -135,7 +139,7 @@ func (a *App) getModule(showAll bool) {
 	}
 }
 
-func (a *App) checkRight() {
+func (a *Application) checkRight() {
 	var hasRight bool
 	reqModule := a.CurrentController
 	reqAction := a.CurrentAction
@@ -170,7 +174,7 @@ Check_Right:
 	}
 }
 
-func (a *App) checkLogin() bool {
+func (a *Application) checkLogin() bool {
 	var b bool
 	if a.checkUser() {
 		b = true
@@ -188,7 +192,7 @@ func (a *App) checkLogin() bool {
 	return b
 }
 
-func (a *App) checkUser() (res bool) {
+func (a *Application) checkUser() (res bool) {
 	username, uok := a.SESSION[a.Page.Config.M["SESSION_UNAME"].(string)]
 	ukey, ukok := a.SESSION[a.Page.Config.M["SESSION_UKEY"].(string)]
 
@@ -206,46 +210,4 @@ func (a *App) checkUser() (res bool) {
 	}
 
 	return res
-}
-
-var Config = web.Config{
-	TemplateDirectory:       "./view/",
-	TemporaryDirectory:      "./tmp/",
-	StaticDirectory:         "./static/",
-	ThemeDirectory:          "theme/",
-	Theme:                   "default",
-	StaticCssDirectory:      "css/",
-	StaticJsDirectory:       "js/",
-	StaticImgDirectory:      "img/",
-	HtmlDirectory:           "html/",
-	UploadDirectory:         "upload/",
-	TemplateGlobalDirectory: "_global/",
-	TemplateGlobalFile:      "*",
-	IndexDirectory:          "index/",
-	IndexPage:               "index.html",
-	SiteRoot:                "/",
-	Environment:             map[string]string{},
-	Database:                map[string]string{},
-}
-
-var Page = &App{
-	Page: &web.Page{
-		Site: &web.Site{
-			Base: &web.Base{
-				MAX_FORM_SIZE: MAX_FORM_SIZE,
-				Session:       session.New("", 0, 0),
-			},
-			Version: strconv.Itoa(time.Now().Year()),
-		},
-		Controller:   map[string]interface{}{},
-		TemplateFunc: template.FuncMap{},
-		Config:       Config,
-		Document: &web.Document{
-			Theme: Config.Theme,
-			Css:   map[string]string{},
-			Js:    map[string]string{},
-			Img:   map[string]string{},
-			Func:  template.FuncMap{},
-		},
-	},
 }

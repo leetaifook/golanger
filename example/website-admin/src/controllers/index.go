@@ -9,16 +9,16 @@ import (
 )
 
 type PageIndex struct {
-	*App
+	*Application
+}
+
+func init() {
+	App.RegisterController("index/", &PageIndex{App})
 }
 
 func (p *PageIndex) Init() {
 	p.OffRight = true
-	p.App.Init()
-}
-
-func init() {
-	Page.RegisterController("index/", &PageIndex{Page})
+	p.Application.Init()
 }
 
 func (p *PageIndex) Index() {

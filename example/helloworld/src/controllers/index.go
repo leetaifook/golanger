@@ -6,11 +6,11 @@ import (
 )
 
 type PageIndex struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("index/", &PageIndex{Page})
+	App.RegisterController("index/", &PageIndex{App})
 }
 
 func (p *PageIndex) Index() {

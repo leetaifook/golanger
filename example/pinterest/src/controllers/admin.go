@@ -9,15 +9,15 @@ import (
 )
 
 type PageAdmin struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("admin/", &PageAdmin{Page})
+	App.RegisterController("admin/", &PageAdmin{App})
 }
 
 func (p *PageAdmin) Init() {
-	p.App.Init()
+	p.Application.Init()
 	_, fileName := filepath.Split(p.Request.URL.Path)
 	if fileName != "login.html" {
 		if _, ok := p.SESSION["user"]; !ok {

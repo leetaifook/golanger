@@ -11,15 +11,15 @@ import (
 )
 
 type PageRole struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("role/", &PageRole{Page})
+	App.RegisterController("role/", &PageRole{App})
 }
 
 func (p *PageRole) Init() {
-	p.App.Init()
+	p.Application.Init()
 
 	p.Func["strJoin"] = strings.Join
 	p.Func["jsonMarshal"] = func(i interface{}) string {

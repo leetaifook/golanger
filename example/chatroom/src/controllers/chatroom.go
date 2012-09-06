@@ -8,7 +8,7 @@ import (
 )
 
 func init() {
-	Page.RegisterController("chatroom/", &PageChatroom{Page})
+	App.RegisterController("chatroom/", &PageChatroom{App})
 }
 
 const (
@@ -20,7 +20,7 @@ const (
 var runningActiveRoom *ActiveRoom = &ActiveRoom{}
 
 type PageChatroom struct {
-	*App
+	*Application
 }
 
 type RenderData struct {

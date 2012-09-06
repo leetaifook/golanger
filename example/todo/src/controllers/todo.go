@@ -12,11 +12,11 @@ import (
 )
 
 type PageTodo struct {
-	*App
+	*Application
 }
 
 func init() {
-	Page.RegisterController("todo/", &PageTodo{Page})
+	App.RegisterController("todo/", &PageTodo{App})
 }
 
 func (p *PageTodo) Index() {
