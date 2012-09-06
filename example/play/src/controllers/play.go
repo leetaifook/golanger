@@ -22,7 +22,7 @@ const (
 )
 
 type PagePlay struct {
-	*App
+	*Application
 }
 
 type Compiled struct {
@@ -31,7 +31,7 @@ type Compiled struct {
 }
 
 func init() {
-	Page.RegisterController("play/", &PagePlay{Page})
+	App.RegisterController("play/", &PagePlay{App})
 }
 
 func (p *PagePlay) Index() {
