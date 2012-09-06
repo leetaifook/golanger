@@ -1,6 +1,6 @@
 #!/bin/sh
-APP="website"
-ADDR=":8080"
+APP="play"
+ADDR=":8087"
 PWD=`pwd`/..
 GO_PWD=${PWD}/../..
 echo "Building framework..."
