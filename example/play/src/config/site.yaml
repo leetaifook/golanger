@@ -41,7 +41,7 @@ TemporaryDirectory       : "./tmp/"
 #上传后保存的目录
 UploadDirectory          : "upload/"
 #默认索引的目录
-IndexDirectory           : "index/"
+IndexDirectory           : "play/"
 #默认索引的文件名
 IndexPage                : "index.html"
 #站点根目录
