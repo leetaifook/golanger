@@ -19,8 +19,11 @@ GPL v3 license.
 
 This library is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE, AND NON-INFRINGEMENT OF THIRD-PARTY INTELLECTUAL PROPERTY RIGHTS.  See the GNU General Public License for more details.
 
-Golanger is a lightweight framework for writing web applications in Go. 
+
+Golanger Web Framework
 =======================================================================
+
+Golanger is a lightweight framework for writing web applications in Go. 
 
 
 ## 框架简单实现了MVC的设计方式
