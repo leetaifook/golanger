@@ -1,8 +1,6 @@
 /*
 
-LiWei All rights reserved.
-
-lee@leetaifook.com
+Copyright (c) 2012 The Golanger Authors. All rights reserved.
 
 Open Source License
 ------------------------------------------------------------------------------------------
@@ -24,34 +22,6 @@ This library is distributed in the hope that it will be useful, but WITHOUT ANY 
 Golanger is a lightweight framework for writing web applications in Go. 
 =======================================================================
 
-## 联系方式
-
-
-### WebSite
-
-```
-http://wWw.GoLangEr.Com
-```
-
-### 微博
-
-```
-新浪：http://weibo.com/leetaifook
-```
-
-### IM
-
-```
-QQ : 20660991
-QQ群 : 29994666
-Gtalk : lee#leetaifook.com 
-```
-
-### Email
-
-```
-lee#leetaifook.com
-```
 
 ## 框架简单实现了MVC的设计方式
 
@@ -89,6 +59,52 @@ chmod +x ./build.sh
 
     根据输出的端口 [port]
     http://localhost:[port]
+
+
+## 主要开发者
+```
+Li Wei <lee#leetaifook.com>
+Bian Jiang <borderj#gmail.com>
+```
+
+
+## 联系方式
+
+
+### WebSite
+
+```
+http://wWw.GoLangEr.Com
+```
+
+### 微博
+
+```
+新浪：http://weibo.com/golanger
+```
+
+### IM
+
+```
+QQ : 20660991
+QQ群 : 29994666
+Gtalk : lee#leetaifook.com 
+```
+
+### Email
+
+```
+lee#leetaifook.com
+borderj#gmail.com
+```
+
+### 邮件列表
+
+```
+https://groups.google.com/group/golang-china/
+golang-china@googlegroups.com
+```
+
 
 */
 
