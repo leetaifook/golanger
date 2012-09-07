@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	. "golanger/middleware"
 	"golanger/utils"
+	"helper"
 	. "models"
 	"time"
 )
@@ -18,7 +19,7 @@ func init() {
 
 // Show user list
 func (p *PageUser) Index() {
-	mgoServer := Middleware.Get("db").(*utils.Mongo)
+	mgoServer := Middleware.Get("db").(*helper.Mongo)
 	cols := []ModelUser{}
 	colSelector := utils.M{}
 	colQuerier := utils.M{"delete": 0}
@@ -43,7 +44,7 @@ func (p *PageUser) Index() {
 func (p *PageUser) CreateUser() {
 	if p.Request.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			m := utils.M{
 				"status":  1,
 				"message": "",
@@ -84,7 +85,7 @@ func (p *PageUser) UpdateUser() {
 	if p.Request.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 
 			username, ok := p.POST["username"]
 			m := utils.M{
@@ -152,7 +153,7 @@ func (p *PageUser) DeleteUser() {
 				m["status"] = "0"
 				m["message"] = "不能删除自己"
 			} else {
-				mgoServer := Middleware.Get("db").(*utils.Mongo)
+				mgoServer := Middleware.Get("db").(*helper.Mongo)
 				colQuerier := utils.M{"name": username, "delete": 0}
 				cnt, err := mgoServer.C(ColUser).Find(colQuerier).Count()
 				if err != nil || cnt == 0 {
@@ -191,7 +192,7 @@ func (p *PageUser) StopUser() {
 					m["status"] = "0"
 					m["message"] = "不能改变自己的状态"
 				} else {
-					mgoServer := Middleware.Get("db").(*utils.Mongo)
+					mgoServer := Middleware.Get("db").(*helper.Mongo)
 					col := ModelUser{}
 					colQuerier := utils.M{"name": username}
 					err := mgoServer.C(ColUser).Find(colQuerier).One(&col)

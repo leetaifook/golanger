@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	. "golanger/middleware"
 	"golanger/utils"
+	"helper"
 	. "models"
 	"time"
 )
@@ -17,7 +18,7 @@ func init() {
 }
 
 func (p *PageModule) Index() {
-	mgoServer := Middleware.Get("db").(*utils.Mongo)
+	mgoServer := Middleware.Get("db").(*helper.Mongo)
 	cols := []ModelModule{}
 	colSelector := utils.M{}
 	colQuerier := utils.M{}
@@ -47,7 +48,7 @@ func (p *PageModule) CreateModule() {
 				"message": "",
 			}
 			p.Hide = true
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			modulename := p.POST["modulename"]
 			modulepath := p.POST["modulepath"]
 			colQuerier := utils.M{"path": modulepath, "name": modulename}
@@ -81,7 +82,7 @@ func (p *PageModule) DeleteModule() {
 	if p.Request.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			modulename := p.POST["modulename"]
 			modulepath := p.POST["modulepath"]
 			colQuerier := utils.M{"path": modulepath, "name": modulename}
@@ -114,7 +115,7 @@ func (p *PageModule) StopModule() {
 				"message": "",
 			}
 			if modulepath, ok := p.POST["modulepath"]; ok {
-				mgoServer := Middleware.Get("db").(*utils.Mongo)
+				mgoServer := Middleware.Get("db").(*helper.Mongo)
 				col := ModelModule{}
 				colQuerier := utils.M{"path": modulepath}
 				err := mgoServer.C(ColModule).Find(colQuerier).One(&col)

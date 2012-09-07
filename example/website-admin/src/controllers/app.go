@@ -4,6 +4,7 @@ import (
 	. "golanger/middleware"
 	"golanger/utils"
 	"golanger/web"
+	"helper"
 	"labix.org/v2/mgo/bson"
 	. "models"
 	"net/http"
@@ -46,7 +47,7 @@ func (a *Application) Init() {
 func (a *Application) getRole() {
 	if username, nok := a.SESSION[a.Page.Config.M["SESSION_UNAME"].(string)]; nok {
 		if _, ok := a.SESSION["role"]; !ok {
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			cols := []ModelRole{}
 			colSelector := utils.M{}
 			colQuerier := utils.M{"delete": 0, "users": username}
@@ -72,7 +73,7 @@ func (a *Application) getRole() {
 
 func (a *Application) getModule(showAll bool) {
 	if _, ok := a.SESSION["modules"]; !ok {
-		mgoServer := Middleware.Get("db").(*utils.Mongo)
+		mgoServer := Middleware.Get("db").(*helper.Mongo)
 		cols := []ModelModule{}
 		colSelector := utils.M{"name": 1, "path": 1}
 		colQuerier := utils.M{"status": 1}
@@ -190,7 +191,7 @@ func (a *Application) checkUser() (res bool) {
 	ukey, ukok := a.SESSION[a.Page.Config.M["SESSION_UKEY"].(string)]
 
 	if uok && ukok {
-		mgoServer := Middleware.Get("db").(*utils.Mongo)
+		mgoServer := Middleware.Get("db").(*helper.Mongo)
 
 		colQuerier := utils.M{"name": username, "password": ukey, "status": 1}
 		colSelecter := utils.M{"name": 1}
