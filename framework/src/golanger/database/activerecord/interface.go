@@ -1,4 +1,4 @@
-package database
+package activerecord
 
 import (
 	"database/sql"
