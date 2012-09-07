@@ -1,6 +1,19 @@
-LiWei All rights reserved.
+Copyright (c) 2012 The Golanger Authors. All rights reserved.
 
-lee@leetaifook.com
+Pinterest Example
+------------------
+
+图片上传的Demo
+采用轻量级数据库Sqlite
+默认用户名: root (参考config/site.yaml文件中的Environment)
+默认密码: admin
+
+## 运行
+./build.sh
+
+管理员登录: http://127.0.0.1:8083/admin/index.html
+登录后增加种类，然后再项目首页上传图片.
+
 
 Open Source License
 ------------------------------------------------------------------------------------------
