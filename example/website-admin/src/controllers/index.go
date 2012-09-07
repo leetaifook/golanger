@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	. "golanger/middleware"
 	"golanger/utils"
+	"helper"
 	. "models"
 	"net/http"
 )
@@ -28,7 +29,7 @@ func (p *PageIndex) Login() {
 	if p.Request.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 
 			m := utils.M{
 				"status":  1,

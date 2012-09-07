@@ -5,7 +5,7 @@ import (
 	"flag"
 	"fmt"
 	. "golanger/middleware"
-	"golanger/utils"
+	"helper"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -28,7 +28,7 @@ func main() {
 	App.Load(*configPath)
 
 	if mongoDns, ok := App.Database["MongoDB"]; ok && mongoDns != "" {
-		mgoServer := utils.NewMongo(mongoDns)
+		mgoServer := helper.NewMongo(mongoDns)
 		defer mgoServer.Close()
 		Middleware.Add("db", mgoServer)
 	}

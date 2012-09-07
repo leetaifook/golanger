@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	. "golanger/middleware"
 	"golanger/utils"
+	"helper"
 	. "models"
 	"reflect"
 	"strings"
@@ -30,7 +31,7 @@ func (p *PageRole) Init() {
 
 // Show role list
 func (p *PageRole) Index() {
-	mgoServer := Middleware.Get("db").(*utils.Mongo)
+	mgoServer := Middleware.Get("db").(*helper.Mongo)
 	cols := []ModelRole{}
 	colSelector := utils.M{}
 	colQuerier := utils.M{"delete": 0}
@@ -118,7 +119,7 @@ func (p *PageRole) Index() {
 func (p *PageRole) Create() {
 	if p.Request.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			m := utils.M{
 				"status":  1,
 				"message": "",
@@ -160,7 +161,7 @@ func (p *PageRole) Update() {
 	if p.Request.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 
 			oldName, ook := p.POST["oldname"]
 			name, nok := p.POST["name"]
@@ -219,7 +220,7 @@ func (p *PageRole) Delete() {
 				"message": "",
 			}
 
-			mgoServer := Middleware.Get("db").(*utils.Mongo)
+			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			colQuerier := utils.M{"name": name, "delete": 0}
 			cnt, err := mgoServer.C(ColRole).Find(colQuerier).Count()
 			if err != nil || cnt == 0 {
@@ -253,7 +254,7 @@ func (p *PageRole) Stop() {
 			}
 
 			if name, ok := p.POST["name"]; ok {
-				mgoServer := Middleware.Get("db").(*utils.Mongo)
+				mgoServer := Middleware.Get("db").(*helper.Mongo)
 				col := ModelRole{}
 				colQuerier := utils.M{"name": name}
 				err := mgoServer.C(ColRole).Find(colQuerier).One(&col)
@@ -297,7 +298,7 @@ func (p *PageRole) Users() {
 			}
 
 			if name, ok := p.POST["name"]; ok {
-				mgoServer := Middleware.Get("db").(*utils.Mongo)
+				mgoServer := Middleware.Get("db").(*helper.Mongo)
 				colQuerier := utils.M{"name": name}
 				cnt, _ := mgoServer.C(ColRole).Find(colQuerier).Count()
 				if cnt == 0 {
@@ -341,7 +342,7 @@ func (p *PageRole) Right() {
 			}
 
 			if name, ok := p.POST["name"]; ok {
-				mgoServer := Middleware.Get("db").(*utils.Mongo)
+				mgoServer := Middleware.Get("db").(*helper.Mongo)
 				colQuerier := utils.M{"name": name, "delete": 0}
 				cnt, _ := mgoServer.C(ColRole).Find(colQuerier).Count()
 				if cnt == 0 {

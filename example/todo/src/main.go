@@ -2,10 +2,11 @@ package main
 
 import (
 	. "controllers"
+	"database/sql"
 	"flag"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	. "golanger/middleware"
-	"golanger/utils"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -27,7 +28,7 @@ func main() {
 
 	App.Load(*configPath)
 
-	sqlite, err := utils.NewSqlite("./data/todo.db")
+	sqlite, err := sql.Open("sqlite3", "./data/todo.db")
 	if err != nil {
 		fmt.Println(err)
 		os.Exit(-1)

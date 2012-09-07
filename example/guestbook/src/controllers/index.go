@@ -3,7 +3,7 @@ package controllers
 import (
 	"fmt"
 	. "golanger/middleware"
-	"golanger/utils"
+	"helper"
 	. "models"
 	"net/http"
 )
@@ -17,7 +17,7 @@ func init() {
 }
 
 func (p *PageIndex) Index() {
-	mgo := Middleware.Get("db").(*utils.Mongo)
+	mgo := Middleware.Get("db").(*helper.Mongo)
 	coll := mgo.C(ColGuestBook)
 
 	query := coll.Find(nil).Sort("-timestamp")
@@ -49,7 +49,7 @@ func (p *PageIndex) Sign() {
 		entry.Message = "Some dummy who forgot a message."
 	}
 
-	mgo := Middleware.Get("db").(*utils.Mongo)
+	mgo := Middleware.Get("db").(*helper.Mongo)
 	coll := mgo.C(ColGuestBook)
 
 	if err := coll.Insert(entry); err != nil {

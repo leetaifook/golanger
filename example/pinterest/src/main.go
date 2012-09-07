@@ -2,11 +2,12 @@ package main
 
 import (
 	. "controllers"
+	"database/sql"
 	"flag"
 	"fmt"
+	_ "github.com/mattn/go-sqlite3"
 	. "golanger/database/activerecord"
 	. "golanger/middleware"
-	"golanger/utils"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -29,7 +30,7 @@ func main() {
 	App.Load(*configPath)
 
 	if sqliteDns, ok := App.Database["Sqlite"]; ok && sqliteDns != "" {
-		sqlite, err := utils.NewSqlite(sqliteDns)
+		sqlite, err := sql.Open("sqlite3", sqliteDns)
 		if err != nil {
 			fmt.Println(err)
 			os.Exit(-1)

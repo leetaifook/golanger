@@ -3,6 +3,7 @@ package controllers
 import (
 	. "golanger/middleware"
 	"golanger/utils"
+	"helper"
 	"io/ioutil"
 	. "models"
 	"net/http"
@@ -30,7 +31,7 @@ func (p *PageInstall) Index() {
 	if _, err := os.Stat(fileInstallLock); err == nil {
 		p.ResponseWriter.Write([]byte("程序已经安装过，如需要重新安装，请删除data目录下的install.lock文件后重试"))
 	} else {
-		mgoServer := Middleware.Get("db").(*utils.Mongo)
+		mgoServer := Middleware.Get("db").(*helper.Mongo)
 		email := "download@golanger.com"
 		username := "golanger"
 		password := "leetaifook"
