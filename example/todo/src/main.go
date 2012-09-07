@@ -37,6 +37,7 @@ func main() {
 	defer sqlite.Close()
 	Middleware.Add("db", sqlite)
 
+	App.AddHeader("Content-Type", "text/html; charset=utf-8")
 	App.HandleFavicon()
 	App.HandleStatic()
 	App.ListenAndServe(*addr)

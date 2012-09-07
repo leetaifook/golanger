@@ -30,6 +30,7 @@ type Page struct {
 	rmutex        sync.RWMutex
 	mutex         sync.Mutex
 	globalTpl     *template.Template
+	header        map[string][]string
 }
 
 type PageParam struct {
@@ -66,6 +67,14 @@ func NewPage(param PageParam) *Page {
 
 func (p *Page) Init() {
 	p.Site.Init()
+
+	if p.header != nil || len(p.header) > 0 {
+		for t, s := range p.header {
+			for _, v := range s {
+				p.ResponseWriter.Header().Add(t, v)
+			}
+		}
+	}
 }
 
 func (p *Page) SetDefaultController(c interface{}) *Page {
@@ -109,6 +118,22 @@ func (p *Page) GetController(urlPath string) (i interface{}) {
 	}
 
 	return
+}
+
+func (p *Page) AddHeader(k, v string) {
+	if _, ok := p.header[k]; ok {
+		p.header[k] = append(p.header[k], v)
+	} else {
+		if p.header == nil {
+			p.header = map[string][]string{}
+		}
+
+		p.header[k] = []string{v}
+	}
+}
+
+func (p *Page) DelHeader(k string) {
+	delete(p.header, k)
 }
 
 func (p *Page) AddTemplateFunc(name string, i interface{}) {
