@@ -66,7 +66,6 @@ func NewPage(param PageParam) *Page {
 
 func (p *Page) Init() {
 	p.Site.Init()
-	p.ResponseWriter.Header().Set("Content-Type", "text/html; charset=utf-8")
 }
 
 func (p *Page) SetDefaultController(c interface{}) *Page {
