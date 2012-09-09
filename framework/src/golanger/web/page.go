@@ -13,7 +13,6 @@ import (
 	"sync"
 	"text/template"
 	"time"
-	//"unsafe"
 )
 
 type Page struct {
