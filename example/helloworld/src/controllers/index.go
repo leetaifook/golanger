@@ -2,18 +2,19 @@ package controllers
 
 import (
 	"fmt"
+	"net/http"
 	"time"
 )
 
 type PageIndex struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("index/", &PageIndex{App})
+	App.RegisterController("index/", PageIndex{})
 }
 
-func (p *PageIndex) Index() {
+func (p *PageIndex) Index(w http.ResponseWriter, r *http.Request) {
 	p.SESSION["String"] = "String"
 	p.SESSION["string"] = "string"
 	p.SESSION["Int"] = 1
@@ -24,11 +25,11 @@ func (p *PageIndex) Index() {
 	p.SESSION["Int64"] = time.Now().UnixNano()
 }
 
-func (p *PageIndex) TestPage() {
+func (p *PageIndex) TestPage(w http.ResponseWriter, r *http.Request) {
 	p.Document.Title = "测试页面"
-	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["String"])))
-	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["string"])))
-	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["Int"])))
-	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["Map"])))
-	p.ResponseWriter.Write([]byte(fmt.Sprintf("%v", p.SESSION["Int64"])))
+	w.Write([]byte(fmt.Sprintf("%v", p.SESSION["String"])))
+	w.Write([]byte(fmt.Sprintf("%v", p.SESSION["string"])))
+	w.Write([]byte(fmt.Sprintf("%v", p.SESSION["Int"])))
+	w.Write([]byte(fmt.Sprintf("%v", p.SESSION["Map"])))
+	w.Write([]byte(fmt.Sprintf("%v", p.SESSION["Int64"])))
 }

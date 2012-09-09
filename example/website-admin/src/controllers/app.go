@@ -13,17 +13,21 @@ import (
 )
 
 type Application struct {
-	*web.Page
-	OffLogin bool
-	OffRight bool
+	web.Page
+	OffLogin       bool
+	OffRight       bool
+	ResponseWriter http.ResponseWriter
+	Request        *http.Request
 }
 
 var App = &Application{
 	Page: web.NewPage(web.PageParam{}),
 }
 
-func (a *Application) Init() {
-	a.Page.Init()
+func (a *Application) Init(w http.ResponseWriter, r *http.Request) {
+	a.Page.Init(w, r)
+	a.ResponseWriter = w
+	a.Request = r
 
 	if a.OffLogin || a.checkLogin() {
 		checkRight, _ := strconv.ParseBool(a.Environment["CheckRight"])

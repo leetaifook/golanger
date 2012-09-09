@@ -2,14 +2,15 @@ package controllers
 
 import (
 	"golanger/web"
+	"net/http"
 )
 
 type Application struct {
-	*web.Page
+	web.Page
 }
 
-func (a *Application) Init() {
-	a.Page.Init()
+func (a *Application) Init(w http.ResponseWriter, r *http.Request) {
+	a.Page.Init(w, r)
 }
 
 var App = &Application{

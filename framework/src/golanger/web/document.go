@@ -27,7 +27,7 @@ type Document struct {
 	Footer             string
 }
 
-func (d *Document) Reset() {
+/*func (d *Document) Reset() {
 	document := d
 	globalCss, okCss := document.Css["global"]
 	globalJs, okJs := document.Js["global"]
@@ -54,4 +54,4 @@ func (d *Document) Reset() {
 	if okImg {
 		d.Img["global"] = globalImg
 	}
-}
+}*/

@@ -9,14 +9,14 @@ import (
 )
 
 type PageIndex struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("index/", &PageIndex{App})
+	App.RegisterController("index/", PageIndex{})
 }
 
-func (p *PageIndex) Index() {
+func (p *PageIndex) Index(w http.ResponseWriter, r *http.Request) {
 	mgo := Middleware.Get("db").(*helper.Mongo)
 	coll := mgo.C(ColGuestBook)
 
@@ -24,16 +24,16 @@ func (p *PageIndex) Index() {
 
 	var entries []ModelGuestBook
 	if err := query.All(&entries); err != nil {
-		http.Error(p.ResponseWriter, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	p.Body = entries
 }
 
-func (p *PageIndex) Sign() {
-	if p.Request.Method != "POST" {
-		p.Body = "不支持这种请求方式: " + fmt.Sprintf("%v", p.Request.Method)
+func (p *PageIndex) Sign(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "POST" {
+		p.Body = "不支持这种请求方式: " + fmt.Sprintf("%v", r.Method)
 		p.Template = "index/error.html"
 		return
 	}
@@ -57,7 +57,7 @@ func (p *PageIndex) Sign() {
 		p.Template = "index/error.html"
 		return
 	} else {
-		http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 
 }

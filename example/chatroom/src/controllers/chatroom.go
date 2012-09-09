@@ -3,12 +3,13 @@ package controllers
 import (
 	"code.google.com/p/go.net/websocket"
 	"helper"
+	"net/http"
 	"strings"
 	"time"
 )
 
 func init() {
-	App.RegisterController("chatroom/", &PageChatroom{App})
+	App.RegisterController("chatroom/", PageChatroom{})
 }
 
 const (
@@ -20,7 +21,7 @@ const (
 var runningActiveRoom *ActiveRoom = &ActiveRoom{}
 
 type PageChatroom struct {
-	*Application
+	Application
 }
 
 type RenderData struct {
@@ -28,13 +29,13 @@ type RenderData struct {
 	WebSocketHost string
 }
 
-func (p *PageChatroom) Index() {
+func (p *PageChatroom) Index(w http.ResponseWriter, r *http.Request) {
 }
 
-func (p *PageChatroom) Join() {
-	if p.Request.Method == "POST" {
+func (p *PageChatroom) Join(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if mail, ok := p.POST["email"]; ok {
-			render := RenderData{Email: mail, WebSocketHost: p.Request.Host}
+			render := RenderData{Email: mail, WebSocketHost: r.Host}
 			p.Body = render
 		} else {
 			p.Template = "chatroom/error.html"

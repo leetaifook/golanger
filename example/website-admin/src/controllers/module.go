@@ -6,18 +6,19 @@ import (
 	"golanger/utils"
 	"helper"
 	. "models"
+	"net/http"
 	"time"
 )
 
 type PageModule struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("module/", &PageModule{App})
+	App.RegisterController("module/", PageModule{})
 }
 
-func (p *PageModule) Index() {
+func (p *PageModule) Index(w http.ResponseWriter, r *http.Request) {
 	mgoServer := Middleware.Get("db").(*helper.Mongo)
 	cols := []ModelModule{}
 	colSelector := utils.M{}
@@ -40,8 +41,8 @@ func (p *PageModule) Index() {
 }
 
 // Create Module
-func (p *PageModule) CreateModule() {
-	if p.Request.Method == "POST" {
+func (p *PageModule) CreateModule(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			m := utils.M{
 				"status":  "1",
@@ -71,15 +72,15 @@ func (p *PageModule) CreateModule() {
 			}
 
 			ret, _ := json.Marshal(m)
-			p.ResponseWriter.Write(ret)
+			w.Write(ret)
 			return
 		}
 	}
 }
 
 // Delete Module
-func (p *PageModule) DeleteModule() {
-	if p.Request.Method == "POST" {
+func (p *PageModule) DeleteModule(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
@@ -100,14 +101,14 @@ func (p *PageModule) DeleteModule() {
 			}
 
 			ret, _ := json.Marshal(m)
-			p.ResponseWriter.Write(ret)
+			w.Write(ret)
 		}
 	}
 }
 
 // Stop Module
-func (p *PageModule) StopModule() {
-	if p.Request.Method == "POST" {
+func (p *PageModule) StopModule(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			m := utils.M{
@@ -144,7 +145,7 @@ func (p *PageModule) StopModule() {
 			}
 
 			ret, _ := json.Marshal(m)
-			p.ResponseWriter.Write(ret)
+			w.Write(ret)
 		}
 	}
 }

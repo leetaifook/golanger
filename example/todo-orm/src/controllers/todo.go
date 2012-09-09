@@ -12,14 +12,14 @@ import (
 )
 
 type PageTodo struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("todo/", &PageTodo{App})
+	App.RegisterController("todo/", PageTodo{})
 }
 
-func (p *PageTodo) Index() {
+func (p *PageTodo) Index(w http.ResponseWriter, r *http.Request) {
 	todos, err := models.GetTodoLists()
 	if err != nil {
 		fmt.Println(err)
@@ -28,8 +28,8 @@ func (p *PageTodo) Index() {
 	p.Body = todos
 }
 
-func (p *PageTodo) New() {
-	if p.Request.Method == "POST" {
+func (p *PageTodo) New(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if title, ok := p.POST["title"]; ok {
 			todo := models.Todo{
 				Title:    title,
@@ -37,7 +37,7 @@ func (p *PageTodo) New() {
 			}
 			_, err := models.SaveTodo(todo)
 			if err == nil {
-				http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+				http.Redirect(w, r, "/", http.StatusFound)
 			} else {
 				p.Body = "数据库错误：" + fmt.Sprintf("%v", err)
 				p.Template = "todo/error.html"
@@ -47,8 +47,8 @@ func (p *PageTodo) New() {
 	}
 }
 
-func (p *PageTodo) Edit() {
-	if p.Request.Method == "GET" {
+func (p *PageTodo) Edit(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
 		if sid, ok := p.GET["id"]; ok {
 			id, _ := strconv.Atoi(sid)
 			todo := models.GetTodo(int64(id))
@@ -58,7 +58,7 @@ func (p *PageTodo) Edit() {
 		}
 	}
 
-	if p.Request.Method == "POST" {
+	if r.Method == "POST" {
 		sid, iok := p.POST["id"]
 		title, tok := p.POST["title"]
 		if iok && tok {
@@ -70,7 +70,7 @@ func (p *PageTodo) Edit() {
 			}
 			_, err := models.UpdateTodo(todo)
 			if err == nil {
-				http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+				http.Redirect(w, r, "/", http.StatusFound)
 			} else {
 				p.Body = "数据库错误：" + fmt.Sprintf("%v", err)
 				p.Template = "todo/error.html"
@@ -79,12 +79,12 @@ func (p *PageTodo) Edit() {
 	}
 }
 
-func (p *PageTodo) Delete() {
+func (p *PageTodo) Delete(w http.ResponseWriter, r *http.Request) {
 	if sid, ok := p.GET["id"]; ok {
 		id, _ := strconv.Atoi(sid)
 		_, err := models.DeleteTodo(int64(id))
 		if err == nil {
-			http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+			http.Redirect(w, r, "/", http.StatusFound)
 		} else {
 			p.Body = "数据库错误：" + fmt.Sprintf("%v", err)
 			p.Template = "todo/error.html"
@@ -96,8 +96,8 @@ func (p *PageTodo) Delete() {
 	}
 }
 
-func (p *PageTodo) Finish() {
-	if p.Request.Method == "GET" {
+func (p *PageTodo) Finish(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
 		id, _ := strconv.Atoi(p.GET["id"])
 		status := p.GET["status"]
 		if id > 0 && (status == "yes" || status == "no") {
@@ -111,7 +111,7 @@ func (p *PageTodo) Finish() {
 			sql := "UPDATE todo SET finished = " + strconv.Itoa(finished) + ", post_date = \"" + postDate + "\" WHERE id = " + strconv.Itoa(id)
 			_, err := db.Exec(sql)
 			if err == nil {
-				http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+				http.Redirect(w, r, "/", http.StatusFound)
 			} else {
 				p.Body = "数据库错误：" + fmt.Sprintf("%v", err)
 				p.Template = "todo/error.html"
@@ -123,7 +123,7 @@ func (p *PageTodo) Finish() {
 	}
 }
 
-func (p *PageTodo) Newtodo() {
+func (p *PageTodo) Newtodo(w http.ResponseWriter, r *http.Request) {
 	models.InitTodo()
-	http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+	http.Redirect(w, r, "/", http.StatusFound)
 }

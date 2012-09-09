@@ -12,24 +12,24 @@ import (
 )
 
 type PageInstall struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("install/", &PageInstall{App})
+	App.RegisterController("install/", PageInstall{})
 }
 
-func (p *PageInstall) Init() {
+func (p *PageInstall) Init(w http.ResponseWriter, r *http.Request) {
 	p.OffLogin = true
 	p.OffRight = true
-	p.Application.Init()
+	p.Application.Init(w, r)
 }
 
-func (p *PageInstall) Index() {
+func (p *PageInstall) Index(w http.ResponseWriter, r *http.Request) {
 	fileInstallLock := "./data/install.lock"
 
 	if _, err := os.Stat(fileInstallLock); err == nil {
-		p.ResponseWriter.Write([]byte("程序已经安装过，如需要重新安装，请删除data目录下的install.lock文件后重试"))
+		w.Write([]byte("程序已经安装过，如需要重新安装，请删除data目录下的install.lock文件后重试"))
 	} else {
 		mgoServer := Middleware.Get("db").(*helper.Mongo)
 		email := "download@golanger.com"
@@ -92,10 +92,10 @@ func (p *PageInstall) Index() {
 			p.Session.Clear(sessionSign)
 		}
 
-		p.ResponseWriter.Write([]byte("安装成功...<br/>用户名:" + username + ",密码:" + password))
+		w.Write([]byte("安装成功...<br/>用户名:" + username + ",密码:" + password))
 	}
 
-	http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)
+	http.Redirect(w, r, "/login.html", http.StatusFound)
 
 	p.Close = true
 }

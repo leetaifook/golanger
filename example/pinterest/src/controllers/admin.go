@@ -9,40 +9,40 @@ import (
 )
 
 type PageAdmin struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("admin/", &PageAdmin{App})
+	App.RegisterController("admin/", PageAdmin{})
 }
 
-func (p *PageAdmin) Init() {
-	p.Application.Init()
-	_, fileName := filepath.Split(p.Request.URL.Path)
+func (p *PageAdmin) Init(w http.ResponseWriter, r *http.Request) {
+	p.Application.Init(w, r)
+	_, fileName := filepath.Split(r.URL.Path)
 	if fileName != "login.html" {
 		if _, ok := p.SESSION["user"]; !ok {
-			http.Redirect(p.ResponseWriter, p.Request, "/admin/login.html", http.StatusFound)
+			http.Redirect(w, r, "/admin/login.html", http.StatusFound)
 		}
 	}
 }
 
-func (p *PageAdmin) Login() {
-	if p.Request.Method == "POST" {
+func (p *PageAdmin) Login(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		username := p.POST["username"]
 		password := p.POST["password"]
 		if username == p.Config.Environment["Username"] && password == p.Config.Environment["Password"] {
 			p.SESSION["user"] = username
-			http.Redirect(p.ResponseWriter, p.Request, "/admin/index.html", http.StatusFound)
+			http.Redirect(w, r, "/admin/index.html", http.StatusFound)
 		}
 	}
 }
 
-func (p *PageAdmin) Logout() {
+func (p *PageAdmin) Logout(w http.ResponseWriter, r *http.Request) {
 	delete(p.SESSION, "user")
-	http.Redirect(p.ResponseWriter, p.Request, "/admin/index.html", http.StatusFound)
+	http.Redirect(w, r, "/admin/index.html", http.StatusFound)
 }
 
-func (p *PageAdmin) Index() {
+func (p *PageAdmin) Index(w http.ResponseWriter, r *http.Request) {
 	body := utils.M{}
 	body["invalidImages"], _ = GetInvalidImages()
 	body["classes"], _ = GetClasses()
@@ -50,8 +50,8 @@ func (p *PageAdmin) Index() {
 	p.Body = body
 }
 
-func (p *PageAdmin) Delete() {
-	if p.Request.Method == "POST" {
+func (p *PageAdmin) Delete(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			var id = p.POST["id"]
 			idValue, _ := strconv.ParseInt(id, 0, 64)
@@ -60,8 +60,8 @@ func (p *PageAdmin) Delete() {
 	}
 }
 
-func (p *PageAdmin) Recover() {
-	if p.Request.Method == "POST" {
+func (p *PageAdmin) Recover(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			var id = p.POST["id"]
 			idValue, _ := strconv.Atoi(id)
@@ -75,8 +75,8 @@ func (p *PageAdmin) Recover() {
 	}
 }
 
-func (p *PageAdmin) Adclass() {
-	if p.Request.Method == "POST" {
+func (p *PageAdmin) Adclass(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			var name = p.POST["className"]
 			go AddClass(Class{
@@ -86,8 +86,8 @@ func (p *PageAdmin) Adclass() {
 	}
 }
 
-func (p *PageAdmin) Declass() {
-	if p.Request.Method == "POST" {
+func (p *PageAdmin) Declass(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			var id = p.POST["classId"]
 			idValue, _ := strconv.ParseInt(id, 0, 64)
@@ -96,8 +96,8 @@ func (p *PageAdmin) Declass() {
 	}
 }
 
-func (p *PageAdmin) Edclass() {
-	if p.Request.Method == "POST" {
+func (p *PageAdmin) Edclass(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			var id = p.POST["classId"]
 			var name = p.POST["className"]

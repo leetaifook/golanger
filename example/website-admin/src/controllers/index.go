@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"encoding/json"
+	"fmt"
 	. "golanger/middleware"
 	"golanger/utils"
 	"helper"
@@ -10,23 +11,23 @@ import (
 )
 
 type PageIndex struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("index/", &PageIndex{App})
+	App.RegisterController("index/", PageIndex{})
 }
 
-func (p *PageIndex) Init() {
+func (p *PageIndex) Init(w http.ResponseWriter, r *http.Request) {
 	p.OffRight = true
-	p.Application.Init()
+	p.Application.Init(w, r)
 }
 
-func (p *PageIndex) Index() {
+func (p *PageIndex) Index(w http.ResponseWriter, r *http.Request) {
 }
 
-func (p *PageIndex) Login() {
-	if p.Request.Method == "POST" {
+func (p *PageIndex) Login(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
@@ -36,8 +37,8 @@ func (p *PageIndex) Login() {
 				"message": "",
 			}
 
-			p.ResponseWriter.Header().Set("Content-Type", "application/json")
-			p.ResponseWriter.Header().Set("Cache-Control", "no-store")
+			w.Header().Set("Content-Type", "application/json")
+			w.Header().Set("Cache-Control", "no-store")
 
 			username := p.POST["username"]
 			password := p.POST["password"]
@@ -67,17 +68,17 @@ func (p *PageIndex) Login() {
 			}
 
 			jres, _ = json.Marshal(m)
-			p.ResponseWriter.Write(jres)
+			w.Write(jres)
 			return
 		}
 	}
 }
 
-func (p *PageIndex) Logout() {
+func (p *PageIndex) Logout(w http.ResponseWriter, r *http.Request) {
 	sessionSign := p.COOKIE[p.Session.CookieName]
 	if sessionSign != "" {
 		p.Session.Clear(sessionSign)
 	}
 
-	http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)
+	http.Redirect(w, r, "/login.html", http.StatusFound)
 }
