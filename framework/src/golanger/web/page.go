@@ -17,20 +17,22 @@ import (
 
 type Page struct {
 	*Site
+	header              map[string][]string
+	Controller          map[string]interface{}
 	DefaultController   interface{}
 	NotFoundtController interface{}
-	Controller          map[string]interface{}
+	CurrentPath         string
+	CurrentFileName     string
 	CurrentController   string
 	CurrentAction       string
 	Template            string
 	TemplateFunc        template.FuncMap
 	*Config
-	*Document
+	Document
 	supportStatic bool
 	rmutex        sync.RWMutex
 	mutex         sync.Mutex
 	globalTpl     *template.Template
-	header        map[string][]string
 }
 
 type PageParam struct {
@@ -40,12 +42,12 @@ type PageParam struct {
 	TimerDuration time.Duration
 }
 
-func NewPage(param PageParam) *Page {
+func NewPage(param PageParam) Page {
 	if param.MaxFormSize <= 0 {
 		param.MaxFormSize = 2 << 20 // 2MB => 2的20次方 乘以 2 =》 2 * 1024 * 1024
 	}
 
-	return &Page{
+	return Page{
 		Site: &Site{
 			Base: &Base{
 				MAX_FORM_SIZE: param.MaxFormSize,
@@ -53,10 +55,11 @@ func NewPage(param PageParam) *Page {
 			},
 			Version: strconv.Itoa(time.Now().Year()),
 		},
+		header:       map[string][]string{},
 		Controller:   map[string]interface{}{},
 		TemplateFunc: template.FuncMap{},
 		Config:       NewConfig(),
-		Document: &Document{
+		Document: Document{
 			Css:  map[string]string{},
 			Js:   map[string]string{},
 			Img:  map[string]string{},
@@ -65,26 +68,26 @@ func NewPage(param PageParam) *Page {
 	}
 }
 
-func (p *Page) Init() {
-	p.Site.Init()
+func (p *Page) Init(w http.ResponseWriter, r *http.Request) {
+	p.Site.Init(w, r)
 
 	if p.header != nil || len(p.header) > 0 {
 		for t, s := range p.header {
 			for _, v := range s {
-				p.ResponseWriter.Header().Add(t, v)
+				w.Header().Add(t, v)
 			}
 		}
 	}
 }
 
-func (p *Page) SetDefaultController(c interface{}) *Page {
-	p.DefaultController = c
+func (p *Page) SetDefaultController(i interface{}) *Page {
+	p.DefaultController = i
 
 	return p
 }
 
-func (p *Page) SetNotFoundController(c interface{}) *Page {
-	p.NotFoundtController = c
+func (p *Page) SetNotFoundController(i interface{}) *Page {
+	p.NotFoundtController = i
 
 	return p
 }
@@ -104,7 +107,7 @@ func (p *Page) UpdateController(oldUrlPath, relUrlPath string, i interface{}) *P
 	return p
 }
 
-func (p *Page) GetController(urlPath string) (i interface{}) {
+func (p *Page) GetController(urlPath string) interface{} {
 	var relUrlPath string
 	if strings.HasPrefix(urlPath, p.Site.Root) {
 		relUrlPath = urlPath[len(p.Site.Root):]
@@ -117,17 +120,13 @@ func (p *Page) GetController(urlPath string) (i interface{}) {
 		i = p.NotFoundtController
 	}
 
-	return
+	return i
 }
 
 func (p *Page) AddHeader(k, v string) {
 	if _, ok := p.header[k]; ok {
 		p.header[k] = append(p.header[k], v)
 	} else {
-		if p.header == nil {
-			p.header = map[string][]string{}
-		}
-
 		p.header[k] = []string{v}
 	}
 }
@@ -215,7 +214,7 @@ func (p *Page) reset(update bool) {
 	}
 }
 
-func (p *Page) setTemplate(path string) {
+func (p *Page) setCurrentInfo(path string) {
 	urlPath, fileName := filepath.Split(path)
 	if urlPath == p.Site.Root {
 		urlPath = p.Site.Root + p.Config.IndexDirectory
@@ -225,38 +224,135 @@ func (p *Page) setTemplate(path string) {
 		fileName = p.Config.IndexPage
 	}
 
-	p.Template = urlPath[len(p.Site.Root):] + fileName
+	p.CurrentPath = urlPath
+	p.CurrentFileName = fileName
+	p.CurrentController = urlPath[len(p.Site.Root):]
+	p.CurrentAction = strings.Replace(strings.Title(strings.Replace(p.CurrentFileName[:len(p.CurrentFileName)-len(filepath.Ext(p.CurrentFileName))], "_", " ", -1)), " ", "", -1)
 }
 
-func (p *Page) routeController() {
-	urlPath, fileName := filepath.Split(p.Template)
-	p.CurrentController = urlPath
-	p.CurrentAction = strings.Replace(strings.Title(strings.Replace(fileName[:len(fileName)-len(filepath.Ext(fileName))], "_", " ", -1)), " ", "", -1)
+func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Request) {
+	p.mutex.Lock()
+	p.Site.Base.Cookie = r.Cookies()
+	p.setCurrentInfo(r.URL.Path)
+	p.Template = p.CurrentController + p.CurrentFileName
+	p.mutex.Unlock()
 
-	pageController := p.GetController(p.CurrentController)
-	rv := reflect.ValueOf(pageController)
+	p.rmutex.RLock()
+	pageOriController := p.GetController(p.CurrentPath)
+	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
+	rv := reflect.ValueOf(pageOriController)
 	rt := rv.Type()
-	if _, ok := rt.MethodByName("Init"); ok {
-		rv.MethodByName("Init").Call([]reflect.Value{})
+	vpc := reflect.New(rt)
+	iv := reflect.ValueOf(i).Elem()
+	vpc.Elem().FieldByName("Application").Set(iv)
+	tpc := vpc.Type()
+	if _, found := tpc.Elem().FieldByName("RW"); found {
+		rvarw := vpc.Elem().FieldByName("RW")
+		rvarw.Set(rvw)
 	}
 
-	if _, ok := rt.MethodByName(p.CurrentAction); ok && p.CurrentAction != "Init" && p.Document.Close == false {
-		rv.MethodByName(p.CurrentAction).Call([]reflect.Value{})
+	if _, found := tpc.Elem().FieldByName("R"); found {
+		rvar := vpc.Elem().FieldByName("R")
+		rvar.Set(rvr)
+	}
+
+	vppc := vpc.Elem().FieldByName("Page")
+	ppc := vppc.Interface().(Page)
+
+	if _, ok := tpc.MethodByName(ppc.CurrentAction); ok && ppc.CurrentAction != "Init" {
+
+		if rm, ok := tpc.MethodByName("Init"); ok {
+			mt := rm.Type
+			switch mt.NumIn() {
+			case 2:
+				if mt.In(1) == rvr.Type() {
+					vpc.MethodByName("Init").Call([]reflect.Value{rvr})
+				} else {
+					vpc.MethodByName("Init").Call([]reflect.Value{rvw})
+				}
+			case 3:
+				vpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+			default:
+				vpc.MethodByName("Init").Call([]reflect.Value{})
+			}
+		}
+
+		if ppc.Document.Close == false {
+			rm, _ := tpc.MethodByName(ppc.CurrentAction)
+			mt := rm.Type
+			switch mt.NumIn() {
+			case 2:
+				if mt.In(1) == rvr.Type() {
+					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvr})
+				} else {
+					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw})
+				}
+			case 3:
+				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw, rvr})
+			default:
+				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{})
+			}
+		}
+
+		ppc = vppc.Interface().(Page)
 	} else {
-		if !strings.Contains(rt.String(), "Page404") {
-			notFountRV := reflect.ValueOf(p.NotFoundtController)
-			notFountRV.MethodByName("Init").Call([]reflect.Value{})
+		if !strings.Contains(tpc.String(), "Page404") {
+			notFountRV := reflect.ValueOf(ppc.NotFoundtController)
+			notFountRT := notFountRV.Type()
+			vnpc := reflect.New(notFountRT)
+			vnpc.Elem().FieldByName("Application").Set(iv)
+			tnpc := vnpc.Type()
+			if _, found := tnpc.Elem().FieldByName("RW"); found {
+				rvarw := vnpc.Elem().FieldByName("RW")
+				rvarw.Set(rvw)
+			}
+
+			if _, found := tnpc.Elem().FieldByName("R"); found {
+				rvar := vnpc.Elem().FieldByName("R")
+				rvar.Set(rvr)
+			}
+
+			vppc = vnpc.Elem().FieldByName("Page")
+
+			if rm, ok := tnpc.MethodByName("Init"); ok {
+				mt := rm.Type
+				switch mt.NumIn() {
+				case 2:
+					if mt.In(1) == rvr.Type() {
+						vnpc.MethodByName("Init").Call([]reflect.Value{rvr})
+					} else {
+						vnpc.MethodByName("Init").Call([]reflect.Value{rvw})
+					}
+				case 3:
+					vnpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+				default:
+					vnpc.MethodByName("Init").Call([]reflect.Value{})
+				}
+			}
+
+			ppc = vppc.Interface().(Page)
 		}
 	}
+
+	vppc.Set(reflect.ValueOf(ppc))
+
+	if ppc.supportStatic {
+		p.mutex.Lock()
+		ppc.setStaticDocument()
+		p.mutex.Unlock()
+
+		ppc.routeTemplate(w, r)
+	}
+
+	p.rmutex.RUnlock()
 }
 
 func (p *Page) setStaticDocument() {
-	urlPath, fileName := filepath.Split(p.Site.Root + p.Template)
-	fileNameNoExt := fileName[:len(fileName)-len(filepath.Ext(fileName))]
+	fileNameNoExt := p.CurrentFileName[:len(p.CurrentFileName)-len(filepath.Ext(p.CurrentFileName))]
 	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
 
-	if cssFi, err := os.Stat(p.Config.StaticCssDirectory + urlPath); err == nil && cssFi.IsDir() {
-		cssPath := strings.Trim(urlPath, "/")
+	if cssFi, err := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath); err == nil && cssFi.IsDir() {
+		cssPath := strings.Trim(p.CurrentPath, "/")
 		DcssPath := p.Config.StaticCssDirectory + cssPath + "/"
 		p.Document.Css[cssPath] = siteRootRightTrim + DcssPath[1:]
 		if _, err := os.Stat(DcssPath + "global.css"); err == nil {
@@ -269,8 +365,8 @@ func (p *Page) setStaticDocument() {
 
 	}
 
-	if jsFi, err := os.Stat(p.Config.StaticJsDirectory + urlPath); err == nil && jsFi.IsDir() {
-		jsPath := strings.Trim(urlPath, "/")
+	if jsFi, err := os.Stat(p.Config.StaticJsDirectory + p.CurrentPath); err == nil && jsFi.IsDir() {
+		jsPath := strings.Trim(p.CurrentPath, "/")
 		DjsPath := p.Config.StaticJsDirectory + jsPath + "/"
 		p.Document.Js[jsPath] = siteRootRightTrim + DjsPath[1:]
 		if _, err := os.Stat(DjsPath + "global.js"); err == nil {
@@ -282,8 +378,8 @@ func (p *Page) setStaticDocument() {
 		}
 	}
 
-	if imgFi, err := os.Stat(p.Config.StaticImgDirectory + urlPath); err == nil && imgFi.IsDir() {
-		imgPath := strings.Trim(urlPath, "/")
+	if imgFi, err := os.Stat(p.Config.StaticImgDirectory + p.CurrentPath); err == nil && imgFi.IsDir() {
+		imgPath := strings.Trim(p.CurrentPath, "/")
 		DimgPath := p.Config.StaticImgDirectory + imgPath + "/"
 		p.Document.Img[imgPath] = siteRootRightTrim + DimgPath[1:]
 	}
@@ -291,7 +387,9 @@ func (p *Page) setStaticDocument() {
 
 func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 	if p.Config.AutoGenerateHtml {
+		p.mutex.Lock()
 		p.Document.GenerateHtml = true
+		p.mutex.Unlock()
 	}
 
 	if p.Document.Close == false && p.Document.Hide == false {
@@ -348,9 +446,7 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					if doWrite {
 						if file, err := os.OpenFile(htmlFile, os.O_CREATE|os.O_WRONLY, 0777); err == nil {
 							templateVar["Siteroot"] = p.Config.SiteRoot + htmlDir + "/"
-							p.mutex.Lock()
 							pageTemplate.Execute(file, templateVar)
-							p.mutex.Unlock()
 						}
 					}
 
@@ -393,39 +489,20 @@ func (p *Page) HandleStatic() {
 	})
 }
 
-func (p *Page) handleRoute() {
+func (p *Page) handleRoute(i interface{}) {
 	http.HandleFunc(p.Site.Root, func(w http.ResponseWriter, r *http.Request) {
 		p.mutex.Lock()
-		p.Site.Base.Request = r
-		p.Site.Base.ResponseWriter = w
-		p.Site.Base.Cookie = r.Cookies()
-
 		if p.Config.Reload() {
 			p.reset(true)
 		}
-
-		p.setTemplate(r.URL.Path)
-		p.routeController()
 		p.mutex.Unlock()
 
-		p.rmutex.RLock()
-		if p.supportStatic {
-			p.mutex.Lock()
-			p.setStaticDocument()
-			p.mutex.Unlock()
-
-			p.routeTemplate(w, r)
-		}
-		p.rmutex.RUnlock()
-
-		p.mutex.Lock()
-		p.Document.Reset()
-		p.mutex.Unlock()
+		p.routeController(i, w, r)
 	})
 }
 
-func (p *Page) ListenAndServe(addr string) {
-	p.handleRoute()
+func (p *Page) ListenAndServe(addr string, i interface{}) {
+	p.handleRoute(i)
 
 	err := http.ListenAndServe(addr, nil)
 	if err != nil {

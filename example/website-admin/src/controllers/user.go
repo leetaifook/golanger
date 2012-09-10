@@ -10,11 +10,11 @@ import (
 )
 
 type PageUser struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("user/", &PageUser{App})
+	App.RegisterController("user/", PageUser{})
 }
 
 // Show user list
@@ -42,7 +42,7 @@ func (p *PageUser) Index() {
 
 // Create User
 func (p *PageUser) CreateUser() {
-	if p.Request.Method == "POST" {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			m := utils.M{
@@ -73,7 +73,7 @@ func (p *PageUser) CreateUser() {
 			}
 
 			ret, _ := json.Marshal(m)
-			p.ResponseWriter.Write(ret)
+			p.RW.Write(ret)
 
 			return
 		}
@@ -82,7 +82,7 @@ func (p *PageUser) CreateUser() {
 
 // Update User
 func (p *PageUser) UpdateUser() {
-	if p.Request.Method == "POST" {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
@@ -131,7 +131,7 @@ func (p *PageUser) UpdateUser() {
 			}
 
 			ret, _ := json.Marshal(m)
-			p.ResponseWriter.Write(ret)
+			p.RW.Write(ret)
 
 			return
 		}
@@ -140,7 +140,7 @@ func (p *PageUser) UpdateUser() {
 
 // Delete User
 func (p *PageUser) DeleteUser() {
-	if p.Request.Method == "POST" {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			username := p.POST["username"]
@@ -172,14 +172,14 @@ func (p *PageUser) DeleteUser() {
 			}
 
 			ret, _ := json.Marshal(m)
-			p.ResponseWriter.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }
 
 // Stop User
 func (p *PageUser) StopUser() {
-	if p.Request.Method == "POST" {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			m := utils.M{
@@ -222,7 +222,7 @@ func (p *PageUser) StopUser() {
 			}
 
 			ret, _ := json.Marshal(m)
-			p.ResponseWriter.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }

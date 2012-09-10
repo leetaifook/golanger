@@ -5,15 +5,16 @@ import (
 )
 
 type Page404 struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.SetNotFoundController(&Page404{App})
+	App.SetNotFoundController(Page404{})
 }
 
-func (p *Page404) Init() {
+func (p *Page404) Init(w http.ResponseWriter, r *http.Request) {
+	p.Application.Init(w, r)
 	p.Document.GenerateHtml = false
 	p.Template = "_notfound/404.html"
-	p.ResponseWriter.WriteHeader(http.StatusNotFound)
+	w.WriteHeader(http.StatusNotFound)
 }

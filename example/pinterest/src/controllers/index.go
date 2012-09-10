@@ -17,14 +17,14 @@ import (
 )
 
 type PageIndex struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("index/", &PageIndex{App})
+	App.RegisterController("index/", PageIndex{})
 }
 
-func (p *PageIndex) Index() {
+func (p *PageIndex) Index(w http.ResponseWriter, r *http.Request) {
 	body := utils.M{}
 	body["classes"], _ = GetClasses()
 	body["images"], _ = GetImagesLists()
@@ -40,15 +40,15 @@ func (p *PageIndex) Index() {
 	p.Body = body
 }
 
-func (p *PageIndex) Upload() {
-	if p.Request.Method == "POST" {
+func (p *PageIndex) Upload(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "POST" {
 		buf := new(bytes.Buffer)
 		tnow := time.Now()
 		binary.Write(buf, binary.LittleEndian, tnow.UnixNano())
 		fileName := strings.TrimRight(base64.URLEncoding.EncodeToString(buf.Bytes()), "=")
 		filePath := p.UploadDirectory + "images/"
 		os.MkdirAll(filePath, 0777)
-		file, fileHeader, err := p.Request.FormFile("file")
+		file, fileHeader, err := r.FormFile("file")
 		if err != nil {
 			fmt.Println(err)
 			return
@@ -70,11 +70,11 @@ func (p *PageIndex) Upload() {
 			CreateTime: time.Now().Unix(),
 		})
 
-		http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+		http.Redirect(w, r, "/", http.StatusFound)
 	}
 }
 
-func (p *PageIndex) Report() {
+func (p *PageIndex) Report(w http.ResponseWriter, r *http.Request) {
 	id, ok := p.GET["id"]
 	if ok {
 		idValue, _ := strconv.Atoi(id)
@@ -85,11 +85,11 @@ func (p *PageIndex) Report() {
 		}
 	}
 
-	http.Redirect(p.ResponseWriter, p.Request, "/", http.StatusFound)
+	http.Redirect(w, r, "/", http.StatusFound)
 }
 
-func (p *PageIndex) Page() {
-	if p.Request.Method == "GET" {
+func (p *PageIndex) Page(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "GET" {
 		if pg, ok := p.GET["page"]; ok {
 			ipg, _ := strconv.Atoi(pg)
 			body := utils.M{}

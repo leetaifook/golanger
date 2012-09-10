@@ -12,11 +12,11 @@ import (
 )
 
 type PageInstall struct {
-	*Application
+	Application
 }
 
 func init() {
-	App.RegisterController("install/", &PageInstall{App})
+	App.RegisterController("install/", PageInstall{})
 }
 
 func (p *PageInstall) Init() {
@@ -29,7 +29,7 @@ func (p *PageInstall) Index() {
 	fileInstallLock := "./data/install.lock"
 
 	if _, err := os.Stat(fileInstallLock); err == nil {
-		p.ResponseWriter.Write([]byte("程序已经安装过，如需要重新安装，请删除data目录下的install.lock文件后重试"))
+		p.RW.Write([]byte("程序已经安装过，如需要重新安装，请删除data目录下的install.lock文件后重试"))
 	} else {
 		mgoServer := Middleware.Get("db").(*helper.Mongo)
 		email := "download@golanger.com"
@@ -92,10 +92,10 @@ func (p *PageInstall) Index() {
 			p.Session.Clear(sessionSign)
 		}
 
-		p.ResponseWriter.Write([]byte("安装成功...<br/>用户名:" + username + ",密码:" + password))
+		p.RW.Write([]byte("安装成功...<br/>用户名:" + username + ",密码:" + password))
 	}
 
-	http.Redirect(p.ResponseWriter, p.Request, "/login.html", http.StatusFound)
+	http.Redirect(p.RW, p.R, "/login.html", http.StatusFound)
 
 	p.Close = true
 }
