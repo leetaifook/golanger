@@ -47,15 +47,14 @@ func New(cookieName string, expires int, timerDuration time.Duration) *SessionMa
 func (s *SessionManager) Get(rw http.ResponseWriter, req *http.Request) map[string]interface{} {
 	var sessionSign string
 
+	s.rmutex.RLock()
+	defer s.rmutex.RUnlock()
+
 	if c, err := req.Cookie(s.CookieName); err == nil {
 		sessionSign = c.Value
-		s.rmutex.RLock()
 		if sessionValue, ok := s.sessions[sessionSign]; ok {
-			s.rmutex.RUnlock()
 			return sessionValue[1]
 		}
-
-		s.rmutex.RUnlock()
 	}
 
 	s.mutex.Lock()

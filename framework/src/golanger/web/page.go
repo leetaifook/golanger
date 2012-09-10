@@ -262,27 +262,20 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	ppc := vppc.Interface().(Page)
 
 	if _, ok := tpc.MethodByName(ppc.CurrentAction); ok && ppc.CurrentAction != "Init" {
+		p.rmutex.RLock()
 		if rm, ok := tpc.MethodByName("Init"); ok {
 			mt := rm.Type
 			switch mt.NumIn() {
 			case 2:
 				if mt.In(1) == rvr.Type() {
-					p.rmutex.RLock()
 					vpc.MethodByName("Init").Call([]reflect.Value{rvr})
-					p.rmutex.RUnlock()
 				} else {
-					p.rmutex.RLock()
 					vpc.MethodByName("Init").Call([]reflect.Value{rvw})
-					p.rmutex.RUnlock()
 				}
 			case 3:
-				p.rmutex.RLock()
 				vpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
-				p.rmutex.RUnlock()
 			default:
-				p.rmutex.RLock()
 				vpc.MethodByName("Init").Call([]reflect.Value{})
-				p.rmutex.RUnlock()
 			}
 		}
 
@@ -292,24 +285,18 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 			switch mt.NumIn() {
 			case 2:
 				if mt.In(1) == rvr.Type() {
-					p.rmutex.RLock()
 					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvr})
-					p.rmutex.RUnlock()
 				} else {
-					p.rmutex.RLock()
 					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw})
-					p.rmutex.RUnlock()
 				}
 			case 3:
-				p.rmutex.RLock()
 				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw, rvr})
-				p.rmutex.RUnlock()
 			default:
-				p.rmutex.RLock()
 				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{})
-				p.rmutex.RUnlock()
 			}
 		}
+
+		p.rmutex.RUnlock()
 
 		ppc = vppc.Interface().(Page)
 	} else {
@@ -361,12 +348,12 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 
 	vppc.Set(reflect.ValueOf(ppc))
 
-	p.rmutex.RLock()
 	if ppc.supportStatic {
+		p.rmutex.RLock()
 		ppc.setStaticDocument()
 		ppc.routeTemplate(w, r)
+		p.rmutex.RUnlock()
 	}
-	p.rmutex.RUnlock()
 
 }
 
@@ -417,7 +404,6 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 		if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
 			globalTemplate, _ := p.globalTpl.Clone()
 			if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).ParseFiles(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
-				p.rmutex.RLock()
 				templateVar := map[string]interface{}{
 					"G":        p.Base.GET,
 					"P":        p.Base.POST,
@@ -429,7 +415,6 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					"D":        p.Document,
 					"Config":   p.Config.M,
 				}
-				p.rmutex.RUnlock()
 
 				if p.Document.GenerateHtml {
 
