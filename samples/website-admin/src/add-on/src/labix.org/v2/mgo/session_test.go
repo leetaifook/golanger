@@ -28,6 +28,7 @@ package mgo_test
 
 import (
 	"errors"
+	"flag"
 	"labix.org/v2/mgo"
 	"labix.org/v2/mgo/bson"
 	. "launchpad.net/gocheck"
@@ -2303,6 +2304,7 @@ func (s *S) TestEnsureIndexGetIndexes(c *C) {
 	c.Assert(err, IsNil)
 
 	indexes, err := coll.Indexes()
+	c.Assert(err, IsNil)
 
 	c.Assert(indexes[0].Name, Equals, "_id_")
 	c.Assert(indexes[1].Name, Equals, "a_1")
@@ -2311,6 +2313,56 @@ func (s *S) TestEnsureIndexGetIndexes(c *C) {
 	c.Assert(indexes[2].Key, DeepEquals, []string{"-b"})
 	c.Assert(indexes[3].Name, Equals, "c_")
 	c.Assert(indexes[3].Key, DeepEquals, []string{"@c"})
+}
+
+var testTTL = flag.Bool("test-ttl", false, "test TTL collections (may take 1 minute)")
+
+func (s *S) TestEnsureIndexExpireAfter(c *C) {
+	session, err := mgo.Dial("localhost:40001")
+	c.Assert(err, IsNil)
+	defer session.Close()
+
+	session.SetSafe(nil)
+
+	coll := session.DB("mydb").C("mycoll")
+
+	err = coll.Insert(M{"n": 1, "t": time.Now().Add(-120 * time.Second)})
+	c.Assert(err, IsNil)
+	err = coll.Insert(M{"n": 2, "t": time.Now()})
+	c.Assert(err, IsNil)
+
+	// Should fail since there are duplicated entries.
+	index := mgo.Index{
+		Key:         []string{"t"},
+		ExpireAfter: 1 * time.Minute,
+	}
+
+	err = coll.EnsureIndex(index)
+	c.Assert(err, IsNil)
+
+	indexes, err := coll.Indexes()
+	c.Assert(err, IsNil)
+	c.Assert(indexes[1].Name, Equals, "t_1")
+	c.Assert(indexes[1].ExpireAfter, Equals, 1 * time.Minute)
+
+	if *testTTL {
+		worked := false
+		stop := time.Now().Add(70 * time.Second)
+		for time.Now().Before(stop) {
+			n, err := coll.Count()
+			c.Assert(err, IsNil)
+			if n == 1 {
+				worked = true
+				break
+			}
+			c.Assert(n, Equals, 2)
+			c.Logf("Still has 2 entries...")
+			time.Sleep(1 * time.Second)
+		}
+		if !worked {
+			c.Fatalf("TTL index didn't work")
+		}
+	}
 }
 
 func (s *S) TestDistinct(c *C) {
@@ -2643,4 +2695,81 @@ func (s *S) TestFsync(c *C) {
 	c.Assert(err, IsNil)
 	err = session.Fsync(true)
 	c.Assert(err, IsNil)
+}
+
+func (s *S) TestPipeIter(c *C) {
+	if !s.versionAtLeast(2, 1) {
+		c.Skip("Pipe only works on 2.1+")
+	}
+
+	session, err := mgo.Dial("localhost:40001")
+	c.Assert(err, IsNil)
+	defer session.Close()
+
+	coll := session.DB("mydb").C("mycoll")
+
+	ns := []int{40, 41, 42, 43, 44, 45, 46}
+	for _, n := range ns {
+		coll.Insert(M{"n": n})
+	}
+
+	iter := coll.Pipe([]M{{"$match": M{"n": M{"$gte": 42}}}}).Iter()
+	result := struct{ N int }{}
+	for i := 2; i < 7; i++ {
+		ok := iter.Next(&result)
+		c.Assert(ok, Equals, true)
+		c.Assert(result.N, Equals, ns[i])
+	}
+
+	c.Assert(iter.Next(&result), Equals, false)
+	c.Assert(iter.Err(), IsNil)
+}
+
+func (s *S) TestPipeAll(c *C) {
+	if !s.versionAtLeast(2, 1) {
+		c.Skip("Pipe only works on 2.1+")
+	}
+
+	session, err := mgo.Dial("localhost:40001")
+	c.Assert(err, IsNil)
+	defer session.Close()
+
+	coll := session.DB("mydb").C("mycoll")
+
+	ns := []int{40, 41, 42, 43, 44, 45, 46}
+	for _, n := range ns {
+		coll.Insert(M{"n": n})
+	}
+
+	var result []struct{ N int }
+	err = coll.Pipe([]M{{"$match": M{"n": M{"$gte": 42}}}}).All(&result)
+	c.Assert(err, IsNil)
+	for i := 2; i < 7; i++ {
+		c.Assert(result[i-2].N, Equals, ns[i])
+	}
+}
+
+func (s *S) TestPipeOne(c *C) {
+	if !s.versionAtLeast(2, 1) {
+		c.Skip("Pipe only works on 2.1+")
+	}
+
+	session, err := mgo.Dial("localhost:40001")
+	c.Assert(err, IsNil)
+	defer session.Close()
+
+	coll := session.DB("mydb").C("mycoll")
+	coll.Insert(M{"a": 1, "b": 2})
+
+	result := struct{ A, B int }{}
+
+	pipe := coll.Pipe([]M{{"$project": M{"a": 1, "b": M{"$add": []interface{}{"$b", 1}}}}})
+	err = pipe.One(&result)
+	c.Assert(err, IsNil)
+	c.Assert(result.A, Equals, 1)
+	c.Assert(result.B, Equals, 3)
+
+	pipe = coll.Pipe([]M{{"$match": M{"a": 2}}})
+	err = pipe.One(&result)
+	c.Assert(err, Equals, mgo.ErrNotFound)
 }
