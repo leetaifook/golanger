@@ -12,9 +12,9 @@ func init() {
 	App.SetNotFoundController(Page404{})
 }
 
-func (p *Page404) Init(w http.ResponseWriter, r *http.Request) {
-	p.Application.Init(w, r)
+func (p *Page404) Init() {
+	p.Application.Init()
 	p.Document.GenerateHtml = false
 	p.Template = "_notfound/404.html"
-	w.WriteHeader(http.StatusNotFound)
+	p.RW.WriteHeader(http.StatusNotFound)
 }

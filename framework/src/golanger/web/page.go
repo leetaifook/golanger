@@ -239,36 +239,56 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 
 	p.rmutex.RLock()
 	pageOriController := p.GetController(p.CurrentPath)
-
+	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
 	rv := reflect.ValueOf(pageOriController)
 	rt := rv.Type()
 	vpc := reflect.New(rt)
 	iv := reflect.ValueOf(i).Elem()
 	vpc.Elem().FieldByName("Application").Set(iv)
+	tpc := vpc.Type()
+	if _, found := tpc.Elem().FieldByName("RW"); found {
+		rvarw := vpc.Elem().FieldByName("RW")
+		rvarw.Set(rvw)
+	}
+
+	if _, found := tpc.Elem().FieldByName("R"); found {
+		rvar := vpc.Elem().FieldByName("R")
+		rvar.Set(rvr)
+	}
+
 	vppc := vpc.Elem().FieldByName("Page")
 	ppc := vppc.Interface().(Page)
-	tpc := vpc.Type()
-	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
 
 	if _, ok := tpc.MethodByName(ppc.CurrentAction); ok && ppc.CurrentAction != "Init" {
 
-		if _, ok := tpc.MethodByName("Init"); ok {
-			vpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+		if rm, ok := tpc.MethodByName("Init"); ok {
+			mt := rm.Type
+			switch mt.NumIn() {
+			case 2:
+				if mt.In(1) == rvr.Type() {
+					vpc.MethodByName("Init").Call([]reflect.Value{rvr})
+				} else {
+					vpc.MethodByName("Init").Call([]reflect.Value{rvw})
+				}
+			case 3:
+				vpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+			default:
+				vpc.MethodByName("Init").Call([]reflect.Value{})
+			}
 		}
 
 		if ppc.Document.Close == false {
 			rm, _ := tpc.MethodByName(ppc.CurrentAction)
 			mt := rm.Type
-
 			switch mt.NumIn() {
-			case 3:
-				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw, rvr})
 			case 2:
 				if mt.In(1) == rvr.Type() {
 					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvr})
 				} else {
 					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw})
 				}
+			case 3:
+				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw, rvr})
 			default:
 				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{})
 			}
@@ -281,9 +301,35 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 			notFountRT := notFountRV.Type()
 			vnpc := reflect.New(notFountRT)
 			vnpc.Elem().FieldByName("Application").Set(iv)
+			tnpc := vnpc.Type()
+			if _, found := tnpc.Elem().FieldByName("RW"); found {
+				rvarw := vnpc.Elem().FieldByName("RW")
+				rvarw.Set(rvw)
+			}
+
+			if _, found := tnpc.Elem().FieldByName("R"); found {
+				rvar := vnpc.Elem().FieldByName("R")
+				rvar.Set(rvr)
+			}
+
 			vppc = vnpc.Elem().FieldByName("Page")
 
-			vnpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+			if rm, ok := tnpc.MethodByName("Init"); ok {
+				mt := rm.Type
+				switch mt.NumIn() {
+				case 2:
+					if mt.In(1) == rvr.Type() {
+						vnpc.MethodByName("Init").Call([]reflect.Value{rvr})
+					} else {
+						vnpc.MethodByName("Init").Call([]reflect.Value{rvw})
+					}
+				case 3:
+					vnpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+				default:
+					vnpc.MethodByName("Init").Call([]reflect.Value{})
+				}
+			}
+
 			ppc = vppc.Interface().(Page)
 		}
 	}

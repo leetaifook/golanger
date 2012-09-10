@@ -6,7 +6,6 @@ import (
 	"golanger/utils"
 	"helper"
 	. "models"
-	"net/http"
 	"reflect"
 	"strings"
 	"time"
@@ -20,8 +19,8 @@ func init() {
 	App.RegisterController("role/", PageRole{})
 }
 
-func (p *PageRole) Init(w http.ResponseWriter, r *http.Request) {
-	p.Application.Init(w, r)
+func (p *PageRole) Init() {
+	p.Application.Init()
 
 	p.Func["strJoin"] = strings.Join
 	p.Func["jsonMarshal"] = func(i interface{}) string {
@@ -31,7 +30,7 @@ func (p *PageRole) Init(w http.ResponseWriter, r *http.Request) {
 }
 
 // Show role list
-func (p *PageRole) Index(w http.ResponseWriter, r *http.Request) {
+func (p *PageRole) Index() {
 	mgoServer := Middleware.Get("db").(*helper.Mongo)
 	cols := []ModelRole{}
 	colSelector := utils.M{}
@@ -117,8 +116,8 @@ func (p *PageRole) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 // Create role
-func (p *PageRole) Create(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageRole) Create() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			m := utils.M{
@@ -150,7 +149,7 @@ func (p *PageRole) Create(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 
 			return
 		}
@@ -158,8 +157,8 @@ func (p *PageRole) Create(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update role
-func (p *PageRole) Update(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageRole) Update() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
@@ -203,7 +202,7 @@ func (p *PageRole) Update(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 
 			return
 		}
@@ -211,8 +210,8 @@ func (p *PageRole) Update(w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete role
-func (p *PageRole) Delete(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageRole) Delete() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			name := p.POST["name"]
@@ -239,14 +238,14 @@ func (p *PageRole) Delete(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }
 
 // Stop role
-func (p *PageRole) Stop(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageRole) Stop() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			m := utils.M{
@@ -284,13 +283,13 @@ func (p *PageRole) Stop(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }
 
-func (p *PageRole) Users(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageRole) Users() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			m := utils.M{
@@ -328,13 +327,13 @@ func (p *PageRole) Users(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }
 
-func (p *PageRole) Right(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageRole) Right() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			m := utils.M{
@@ -380,7 +379,7 @@ func (p *PageRole) Right(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }

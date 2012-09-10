@@ -6,7 +6,6 @@ import (
 	"golanger/utils"
 	"helper"
 	. "models"
-	"net/http"
 	"time"
 )
 
@@ -18,7 +17,7 @@ func init() {
 	App.RegisterController("module/", PageModule{})
 }
 
-func (p *PageModule) Index(w http.ResponseWriter, r *http.Request) {
+func (p *PageModule) Index() {
 	mgoServer := Middleware.Get("db").(*helper.Mongo)
 	cols := []ModelModule{}
 	colSelector := utils.M{}
@@ -41,8 +40,8 @@ func (p *PageModule) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 // Create Module
-func (p *PageModule) CreateModule(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageModule) CreateModule() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			m := utils.M{
 				"status":  "1",
@@ -72,15 +71,15 @@ func (p *PageModule) CreateModule(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 			return
 		}
 	}
 }
 
 // Delete Module
-func (p *PageModule) DeleteModule(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageModule) DeleteModule() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
@@ -101,14 +100,14 @@ func (p *PageModule) DeleteModule(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }
 
 // Stop Module
-func (p *PageModule) StopModule(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageModule) StopModule() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			m := utils.M{
@@ -145,7 +144,7 @@ func (p *PageModule) StopModule(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }

@@ -6,7 +6,6 @@ import (
 	"golanger/utils"
 	"helper"
 	. "models"
-	"net/http"
 	"time"
 )
 
@@ -19,7 +18,7 @@ func init() {
 }
 
 // Show user list
-func (p *PageUser) Index(w http.ResponseWriter, r *http.Request) {
+func (p *PageUser) Index() {
 	mgoServer := Middleware.Get("db").(*helper.Mongo)
 	cols := []ModelUser{}
 	colSelector := utils.M{}
@@ -42,8 +41,8 @@ func (p *PageUser) Index(w http.ResponseWriter, r *http.Request) {
 }
 
 // Create User
-func (p *PageUser) CreateUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageUser) CreateUser() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
 			m := utils.M{
@@ -74,7 +73,7 @@ func (p *PageUser) CreateUser(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 
 			return
 		}
@@ -82,8 +81,8 @@ func (p *PageUser) CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // Update User
-func (p *PageUser) UpdateUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageUser) UpdateUser() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			mgoServer := Middleware.Get("db").(*helper.Mongo)
@@ -132,7 +131,7 @@ func (p *PageUser) UpdateUser(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 
 			return
 		}
@@ -140,8 +139,8 @@ func (p *PageUser) UpdateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 // Delete User
-func (p *PageUser) DeleteUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageUser) DeleteUser() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			username := p.POST["username"]
@@ -173,14 +172,14 @@ func (p *PageUser) DeleteUser(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }
 
 // Stop User
-func (p *PageUser) StopUser(w http.ResponseWriter, r *http.Request) {
-	if r.Method == "POST" {
+func (p *PageUser) StopUser() {
+	if p.R.Method == "POST" {
 		if _, ok := p.POST["ajax"]; ok {
 			p.Hide = true
 			m := utils.M{
@@ -223,7 +222,7 @@ func (p *PageUser) StopUser(w http.ResponseWriter, r *http.Request) {
 			}
 
 			ret, _ := json.Marshal(m)
-			w.Write(ret)
+			p.RW.Write(ret)
 		}
 	}
 }

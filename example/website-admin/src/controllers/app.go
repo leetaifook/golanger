@@ -14,20 +14,18 @@ import (
 
 type Application struct {
 	web.Page
-	OffLogin       bool
-	OffRight       bool
-	ResponseWriter http.ResponseWriter
-	Request        *http.Request
+	OffLogin bool
+	OffRight bool
+	RW       http.ResponseWriter
+	R        *http.Request
 }
 
 var App = &Application{
 	Page: web.NewPage(web.PageParam{}),
 }
 
-func (a *Application) Init(w http.ResponseWriter, r *http.Request) {
-	a.Page.Init(w, r)
-	a.ResponseWriter = w
-	a.Request = r
+func (a *Application) Init() {
+	a.Page.Init(a.RW, a.R)
 
 	if a.OffLogin || a.checkLogin() {
 		checkRight, _ := strconv.ParseBool(a.Environment["CheckRight"])
@@ -166,8 +164,8 @@ func (a *Application) checkRight() {
 
 Check_Right:
 	if !hasRight {
-		a.ResponseWriter.WriteHeader(http.StatusForbidden)
-		a.ResponseWriter.Write([]byte("无权限"))
+		a.RW.WriteHeader(http.StatusForbidden)
+		a.RW.Write([]byte("无权限"))
 		a.Close = true
 	}
 }
@@ -176,13 +174,13 @@ func (a *Application) checkLogin() bool {
 	var b bool
 	if a.checkUser() {
 		b = true
-		if a.Request.URL.Path == "/login.html" {
-			http.Redirect(a.ResponseWriter, a.Request, "/index.html", http.StatusFound)
+		if a.R.URL.Path == "/login.html" {
+			http.Redirect(a.RW, a.R, "/index.html", http.StatusFound)
 			a.Close = true
 		}
 	} else {
-		if a.Request.URL.Path != "/login.html" {
-			http.Redirect(a.ResponseWriter, a.Request, "/login.html?back_url="+url.QueryEscape(a.Request.URL.String()), http.StatusFound)
+		if a.R.URL.Path != "/login.html" {
+			http.Redirect(a.RW, a.R, "/login.html?back_url="+url.QueryEscape(a.R.URL.String()), http.StatusFound)
 			a.Close = true
 		}
 	}
