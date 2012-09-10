@@ -58,7 +58,9 @@ func (s *SessionManager) Get(rw http.ResponseWriter, req *http.Request) map[stri
 		s.rmutex.RUnlock()
 	}
 
+	s.mutex.Lock()
 	sessionSign = s.new(rw)
+	s.mutex.Unlock()
 
 	return s.sessions[sessionSign][1]
 }
