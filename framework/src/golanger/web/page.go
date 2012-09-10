@@ -349,8 +349,10 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	vppc.Set(reflect.ValueOf(ppc))
 
 	if ppc.supportStatic {
+		p.rmutex.RLock()
 		ppc.setStaticDocument()
 		ppc.routeTemplate(w, r)
+		p.rmutex.RUnlock()
 	}
 
 }
@@ -402,7 +404,6 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 		if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
 			globalTemplate, _ := p.globalTpl.Clone()
 			if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).ParseFiles(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
-				p.rmutex.RLock()
 				templateVar := map[string]interface{}{
 					"G":        p.Base.GET,
 					"P":        p.Base.POST,
@@ -414,7 +415,6 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					"D":        p.Document,
 					"Config":   p.Config.M,
 				}
-				p.rmutex.RUnlock()
 
 				if p.Document.GenerateHtml {
 
