@@ -239,8 +239,10 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 
 	p.rmutex.RLock()
 	pageOriController := p.GetController(p.CurrentPath)
-	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
 	rv := reflect.ValueOf(pageOriController)
+	p.rmutex.RUnlock()
+
+	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
 	rt := rv.Type()
 	vpc := reflect.New(rt)
 	iv := reflect.ValueOf(i).Elem()
@@ -260,20 +262,27 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	ppc := vppc.Interface().(Page)
 
 	if _, ok := tpc.MethodByName(ppc.CurrentAction); ok && ppc.CurrentAction != "Init" {
-
 		if rm, ok := tpc.MethodByName("Init"); ok {
 			mt := rm.Type
 			switch mt.NumIn() {
 			case 2:
 				if mt.In(1) == rvr.Type() {
+					p.mutex.Lock()
 					vpc.MethodByName("Init").Call([]reflect.Value{rvr})
+					p.mutex.Unlock()
 				} else {
+					p.mutex.Lock()
 					vpc.MethodByName("Init").Call([]reflect.Value{rvw})
+					p.mutex.Unlock()
 				}
 			case 3:
+				p.mutex.Lock()
 				vpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+				p.mutex.Unlock()
 			default:
+				p.mutex.Lock()
 				vpc.MethodByName("Init").Call([]reflect.Value{})
+				p.mutex.Unlock()
 			}
 		}
 
@@ -283,14 +292,22 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 			switch mt.NumIn() {
 			case 2:
 				if mt.In(1) == rvr.Type() {
+					p.mutex.Lock()
 					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvr})
+					p.mutex.Unlock()
 				} else {
+					p.mutex.Lock()
 					vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw})
+					p.mutex.Unlock()
 				}
 			case 3:
+				p.mutex.Lock()
 				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{rvw, rvr})
+				p.mutex.Unlock()
 			default:
+				p.mutex.Lock()
 				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{})
+				p.mutex.Unlock()
 			}
 		}
 
@@ -319,14 +336,22 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 				switch mt.NumIn() {
 				case 2:
 					if mt.In(1) == rvr.Type() {
+						p.mutex.Lock()
 						vnpc.MethodByName("Init").Call([]reflect.Value{rvr})
+						p.mutex.Unlock()
 					} else {
+						p.mutex.Lock()
 						vnpc.MethodByName("Init").Call([]reflect.Value{rvw})
+						p.mutex.Unlock()
 					}
 				case 3:
+					p.mutex.Lock()
 					vnpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
+					p.mutex.Unlock()
 				default:
+					p.mutex.Lock()
 					vnpc.MethodByName("Init").Call([]reflect.Value{})
+					p.mutex.Unlock()
 				}
 			}
 
@@ -337,14 +362,13 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	vppc.Set(reflect.ValueOf(ppc))
 
 	if ppc.supportStatic {
-		p.mutex.Lock()
 		ppc.setStaticDocument()
-		p.mutex.Unlock()
 
+		p.rmutex.RLock()
 		ppc.routeTemplate(w, r)
+		p.rmutex.RUnlock()
 	}
 
-	p.rmutex.RUnlock()
 }
 
 func (p *Page) setStaticDocument() {
@@ -387,9 +411,7 @@ func (p *Page) setStaticDocument() {
 
 func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 	if p.Config.AutoGenerateHtml {
-		p.mutex.Lock()
 		p.Document.GenerateHtml = true
-		p.mutex.Unlock()
 	}
 
 	if p.Document.Close == false && p.Document.Hide == false {
