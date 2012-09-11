@@ -28,8 +28,11 @@ type Page struct {
 	TemplateFunc        template.FuncMap
 	Config
 	Document
-	supportStatic bool
-	globalTpl     *template.Template
+	SESSION        map[string]interface{}
+	Session        *session.SessionManager
+	SupportSession bool
+	supportStatic  bool
+	globalTpl      *template.Template
 }
 
 type PageParam struct {
@@ -48,7 +51,6 @@ func NewPage(param PageParam) Page {
 		Site: &Site{
 			Base: &Base{
 				MAX_FORM_SIZE: param.MaxFormSize,
-				Session:       session.New(param.CookieName, param.Expires, param.TimerDuration),
 			},
 			TemplateCache: map[string]templateCache{},
 			Version:       strconv.Itoa(time.Now().Year()),
@@ -63,6 +65,7 @@ func NewPage(param PageParam) Page {
 			Img:  map[string]string{},
 			Func: template.FuncMap{},
 		},
+		Session: session.New(param.CookieName, param.Expires, param.TimerDuration),
 	}
 }
 
@@ -70,6 +73,10 @@ func (p *Page) Init(w http.ResponseWriter, r *http.Request) {
 	p.Site.Base.mutex.Lock()
 	p.Site.Init(w, r)
 	p.Site.Base.mutex.Unlock()
+
+	if p.SupportSession {
+		p.SESSION = p.Session.Get(w, r)
+	}
 
 	if p.header != nil || len(p.header) > 0 {
 		for t, s := range p.header {
@@ -157,8 +164,8 @@ func (p *Page) Load(configPath string) {
 
 func (p *Page) reset(update bool) {
 	if update {
-		if p.Site.Base.SupportSession != p.Config.SupportSession {
-			p.Site.Base.SupportSession = p.Config.SupportSession
+		if p.SupportSession != p.Config.SupportSession {
+			p.SupportSession = p.Config.SupportSession
 		}
 
 		if p.Document.Theme != p.Config.Theme {
@@ -177,7 +184,7 @@ func (p *Page) reset(update bool) {
 			p.Site.Root = p.Config.SiteRoot
 		}
 	} else {
-		p.Site.Base.SupportSession = p.Config.SupportSession
+		p.SupportSession = p.Config.SupportSession
 		p.Document.Theme = p.Config.Theme
 		p.Site.Root = p.Config.SiteRoot
 		p.Document.Static = p.Site.Root + p.Config.StaticDirectory[2:]
@@ -321,7 +328,7 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	}
 
 	if ppc.supportStatic {
-		//ppc.setStaticDocument()
+		ppc.setStaticDocument()
 		ppc.routeTemplate(w, r)
 	}
 
@@ -399,16 +406,16 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 			}
 
 			globalTemplate, _ := p.globalTpl.Clone()
-			p.Site.Base.mutex.Lock()
+			//p.Site.Base.mutex.Lock()
 			pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).Parse(tmplCache.Content)
-			p.Site.Base.mutex.Unlock()
+			//p.Site.Base.mutex.Unlock()
 			p.Site.Base.rmutex.RUnlock()
 
 			if err == nil {
 				templateVar := map[string]interface{}{
 					"G":        p.Base.GET,
 					"P":        p.Base.POST,
-					"S":        p.Base.SESSION,
+					"S":        p.SESSION,
 					"C":        p.Base.COOKIE,
 					"Siteroot": p.Site.Root,
 					"Version":  p.Site.Version,
@@ -515,7 +522,6 @@ func (p *Page) HandleStatic() {
 func (p *Page) handleRoute(i interface{}) {
 	http.HandleFunc(p.Site.Root, func(w http.ResponseWriter, r *http.Request) {
 		p.Site.Base.mutex.Lock()
-
 		if p.Config.Reload() {
 			p.reset(true)
 		}
@@ -523,7 +529,6 @@ func (p *Page) handleRoute(i interface{}) {
 		p.Site.Base.Cookie = r.Cookies()
 		p.setCurrentInfo(r.URL.Path)
 		p.Template = p.CurrentController + p.CurrentFileName
-
 		p.Site.Base.mutex.Unlock()
 
 		p.routeController(i, w, r)
