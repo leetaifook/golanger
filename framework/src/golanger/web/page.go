@@ -321,7 +321,7 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	}
 
 	if ppc.supportStatic {
-		ppc.setStaticDocument()
+		//ppc.setStaticDocument()
 		ppc.routeTemplate(w, r)
 	}
 
@@ -333,7 +333,7 @@ func (p *Page) setStaticDocument() {
 	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
 	p.Site.Base.rmutex.RUnlock()
 
-	/*cssFi, cssErr := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath)
+	cssFi, cssErr := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath)
 	jsFi, jsErr := os.Stat(p.Config.StaticJsDirectory + p.CurrentPath)
 	imgFi, imgErr := os.Stat(p.Config.StaticImgDirectory + p.CurrentPath)
 
@@ -376,7 +376,7 @@ func (p *Page) setStaticDocument() {
 		imgPath := strings.Trim(p.CurrentPath, "/")
 		DimgPath := p.Config.StaticImgDirectory + imgPath + "/"
 		p.Document.Img[imgPath] = siteRootRightTrim + DimgPath[1:]
-	}*/
+	}
 }
 
 func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
