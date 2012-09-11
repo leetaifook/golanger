@@ -236,9 +236,11 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
 	rt := rv.Type()
 	vpc := reflect.New(rt)
+
 	iv := reflect.ValueOf(i).Elem()
 	vapc := vpc.Elem().FieldByName("Application")
 	vapc.Set(iv)
+
 	tapc := vapc.Type()
 	if _, found := tapc.FieldByName("RW"); found {
 		vapc.FieldByName("RW").Set(rvw)
@@ -294,8 +296,9 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 			vnpc := reflect.New(notFountRT)
 			vanpc := vnpc.Elem().FieldByName("Application")
 			vanpc.Set(vapc)
-			vanpc.FieldByName("Page").Set(vppc)
 			vpnpc := vanpc.FieldByName("Page")
+			vpnpc.Set(vppc)
+
 			ppc = vpnpc.Addr().Interface().(*Page)
 			tnpc := vnpc.Type()
 
@@ -318,7 +321,7 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	}
 
 	if ppc.supportStatic {
-		ppc.setStaticDocument()
+		//ppc.setStaticDocument()
 		ppc.routeTemplate(w, r)
 	}
 
