@@ -236,9 +236,11 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
 	rt := rv.Type()
 	vpc := reflect.New(rt)
+
 	iv := reflect.ValueOf(i).Elem()
 	vapc := vpc.Elem().FieldByName("Application")
 	vapc.Set(iv)
+
 	tapc := vapc.Type()
 	if _, found := tapc.FieldByName("RW"); found {
 		vapc.FieldByName("RW").Set(rvw)
@@ -294,8 +296,9 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 			vnpc := reflect.New(notFountRT)
 			vanpc := vnpc.Elem().FieldByName("Application")
 			vanpc.Set(vapc)
-			vanpc.FieldByName("Page").Set(vppc)
 			vpnpc := vanpc.FieldByName("Page")
+			vpnpc.Set(vppc)
+
 			ppc = vpnpc.Addr().Interface().(*Page)
 			tnpc := vnpc.Type()
 
@@ -330,7 +333,7 @@ func (p *Page) setStaticDocument() {
 	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
 	p.Site.Base.rmutex.RUnlock()
 
-	cssFi, cssErr := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath)
+	/*cssFi, cssErr := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath)
 	jsFi, jsErr := os.Stat(p.Config.StaticJsDirectory + p.CurrentPath)
 	imgFi, imgErr := os.Stat(p.Config.StaticImgDirectory + p.CurrentPath)
 
@@ -373,7 +376,7 @@ func (p *Page) setStaticDocument() {
 		imgPath := strings.Trim(p.CurrentPath, "/")
 		DimgPath := p.Config.StaticImgDirectory + imgPath + "/"
 		p.Document.Img[imgPath] = siteRootRightTrim + DimgPath[1:]
-	}
+	}*/
 }
 
 func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
