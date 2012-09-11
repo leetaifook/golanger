@@ -1,35 +1,36 @@
 package web
 
 import (
+	"encoding/json"
 	"io/ioutil"
-	"launchpad.net/goyaml"
 	"os"
+	"regexp"
 )
 
 type Config struct {
-	SupportSession            bool                   "SupportSession"
-	AutoGenerateHtml          bool                   "AutoGenerateHtml"
-	AutoGenerateHtmlCycleTime int64                  "AutoGenerateHtmlCycleTime"
-	AutoJumpToHtml            bool                   "AutoJumpToHtml"
-	Debug                     bool                   "Debug"
-	StaticDirectory           string                 "StaticDirectory"
-	ThemeDirectory            string                 "ThemeDirectory"
-	Theme                     string                 "Theme"
-	StaticCssDirectory        string                 "StaticCssDirectory"
-	StaticJsDirectory         string                 "StaticJsDirectory"
-	StaticImgDirectory        string                 "StaticImgDirectory"
-	HtmlDirectory             string                 "HtmlDirectory"
-	TemplateDirectory         string                 "TemplateDirectory"
-	TemplateGlobalDirectory   string                 "TemplateGlobalDirectory"
-	TemplateGlobalFile        string                 "TemplateGlobalFile"
-	TemporaryDirectory        string                 "TemporaryDirectory"
-	UploadDirectory           string                 "UploadDirectory"
-	IndexDirectory            string                 "IndexDirectory"
-	IndexPage                 string                 "IndexPage"
-	SiteRoot                  string                 "SiteRoot"
-	Environment               map[string]string      "Environment"
-	Database                  map[string]string      "Database"
-	M                         map[string]interface{} "Custom"
+	SupportSession            bool                   `json:"SupportSession"`
+	AutoGenerateHtml          bool                   `json:"AutoGenerateHtml"`
+	AutoGenerateHtmlCycleTime int64                  `json:"AutoGenerateHtmlCycleTime"`
+	AutoJumpToHtml            bool                   `json:"AutoJumpToHtml"`
+	Debug                     bool                   `json:"Debug"`
+	StaticDirectory           string                 `json:"StaticDirectory"`
+	ThemeDirectory            string                 `json:"ThemeDirectory"`
+	Theme                     string                 `json:"Theme"`
+	StaticCssDirectory        string                 `json:"StaticCssDirectory"`
+	StaticJsDirectory         string                 `json:"StaticJsDirectory"`
+	StaticImgDirectory        string                 `json:"StaticImgDirectory"`
+	HtmlDirectory             string                 `json:"HtmlDirectory"`
+	TemplateDirectory         string                 `json:"TemplateDirectory"`
+	TemplateGlobalDirectory   string                 `json:"TemplateGlobalDirectory"`
+	TemplateGlobalFile        string                 `json:"TemplateGlobalFile"`
+	TemporaryDirectory        string                 `json:"TemporaryDirectory"`
+	UploadDirectory           string                 `json:"UploadDirectory"`
+	IndexDirectory            string                 `json:"IndexDirectory"`
+	IndexPage                 string                 `json:"IndexPage"`
+	SiteRoot                  string                 `json:"SiteRoot"`
+	Environment               map[string]string      `json:"Environment"`
+	Database                  map[string]string      `json:"Database"`
+	M                         map[string]interface{} `json:"Custom"`
 	configPath                string
 	configLastModTime         int64
 }
@@ -56,13 +57,19 @@ func NewConfig() Config {
 	}
 }
 
-func (c *Config) Load(configPath string) {
-	yamlData, err := ioutil.ReadFile(configPath)
+func (c *Config) format(configPath string) []byte {
+	data, err := ioutil.ReadFile(configPath)
 	if err != nil {
 		panic(err)
 	}
 
-	err = goyaml.Unmarshal(yamlData, c)
+	return regexp.MustCompile(`#.*\n`).ReplaceAll(data, []byte("\n"))
+}
+
+func (c *Config) Load(configPath string) {
+	data := c.format(configPath)
+
+	err := json.Unmarshal(data, c)
 	if err != nil {
 		panic(err)
 	}
@@ -74,20 +81,20 @@ func (c *Config) Load(configPath string) {
 	c.StaticImgDirectory = c.StaticDirectory + c.ThemeDirectory + c.StaticImgDirectory
 
 	c.configPath = configPath
-	yamlFi, _ := os.Stat(configPath)
-	c.configLastModTime = yamlFi.ModTime().Unix()
+	dataFi, _ := os.Stat(configPath)
+	c.configLastModTime = dataFi.ModTime().Unix()
 }
 
 func (c *Config) Reload() bool {
 	var b bool
 	configPath := c.configPath
-	yamlFi, _ := os.Stat(configPath)
-	if yamlFi.ModTime().Unix() > c.configLastModTime {
-		yamlData, _ := ioutil.ReadFile(configPath)
+	dataFi, _ := os.Stat(configPath)
+	if dataFi.ModTime().Unix() > c.configLastModTime {
+		data := c.format(configPath)
 		*c = NewConfig()
-		goyaml.Unmarshal(yamlData, c)
+		json.Unmarshal(data, c)
 		c.configPath = configPath
-		c.configLastModTime = yamlFi.ModTime().Unix()
+		c.configLastModTime = dataFi.ModTime().Unix()
 		c.UploadDirectory = c.StaticDirectory + c.UploadDirectory
 		c.ThemeDirectory = c.ThemeDirectory + c.Theme + "/"
 		c.StaticCssDirectory = c.StaticDirectory + c.ThemeDirectory + c.StaticCssDirectory

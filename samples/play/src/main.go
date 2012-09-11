@@ -12,7 +12,7 @@ import (
 
 var (
 	addr       = flag.String("addr", ":80", "Server port")
-	configPath = flag.String("config", "./config/site.yaml", "site filepath of config")
+	configPath = flag.String("config", "./config/site", "site filepath of config")
 )
 
 func main() {
