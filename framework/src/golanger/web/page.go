@@ -330,21 +330,17 @@ func (p *Page) setStaticDocument() {
 	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
 	p.Site.Base.rmutex.RUnlock()
 
-	p.Site.Base.mutex.Lock()
 	cssFi, cssErr := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath)
 	jsFi, jsErr := os.Stat(p.Config.StaticJsDirectory + p.CurrentPath)
 	imgFi, imgErr := os.Stat(p.Config.StaticImgDirectory + p.CurrentPath)
-	p.Site.Base.mutex.Unlock()
 
 	if cssErr == nil && cssFi.IsDir() {
 		cssPath := strings.Trim(p.CurrentPath, "/")
 		DcssPath := p.Config.StaticCssDirectory + cssPath + "/"
 		p.Document.Css[cssPath] = siteRootRightTrim + DcssPath[1:]
 
-		p.Site.Base.mutex.Lock()
 		_, errgcss := os.Stat(DcssPath + "global.css")
 		_, errcss := os.Stat(DcssPath + fileNameNoExt + ".css")
-		p.Site.Base.mutex.Unlock()
 
 		if errgcss == nil {
 			p.Document.GlobalIndexCssFile = p.Document.Css[cssPath] + "global.css"
@@ -361,10 +357,8 @@ func (p *Page) setStaticDocument() {
 		DjsPath := p.Config.StaticJsDirectory + jsPath + "/"
 		p.Document.Js[jsPath] = siteRootRightTrim + DjsPath[1:]
 
-		p.Site.Base.mutex.Lock()
 		_, errgjs := os.Stat(DjsPath + "global.js")
 		_, errjs := os.Stat(DjsPath + fileNameNoExt + ".js")
-		p.Site.Base.mutex.Unlock()
 
 		if errgjs == nil {
 			p.Document.GlobalIndexJsFile = p.Document.Js[jsPath] + "global.js"
@@ -408,7 +402,6 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 			p.Site.Base.rmutex.RUnlock()
 
 			if err == nil {
-				p.Site.Base.rmutex.RLock()
 				templateVar := map[string]interface{}{
 					"G":        p.Base.GET,
 					"P":        p.Base.POST,
@@ -417,7 +410,6 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					"Siteroot": p.Site.Root,
 					"Version":  p.Site.Version,
 				}
-				p.Site.Base.rmutex.RUnlock()
 
 				templateVar["Template"] = p.Template
 				templateVar["D"] = p.Document
