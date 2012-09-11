@@ -67,7 +67,9 @@ func NewPage(param PageParam) Page {
 }
 
 func (p *Page) Init(w http.ResponseWriter, r *http.Request) {
+	p.Site.Base.mutex.Lock()
 	p.Site.Init(w, r)
+	p.Site.Base.mutex.Unlock()
 
 	if p.header != nil || len(p.header) > 0 {
 		for t, s := range p.header {
@@ -256,23 +258,15 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 			switch mt.NumIn() {
 			case 2:
 				if mt.In(1) == rvr.Type() {
-					p.Site.Base.mutex.Lock()
 					vpc.MethodByName("Init").Call([]reflect.Value{rvr})
-					p.Site.Base.mutex.Unlock()
 
 				} else {
-					p.Site.Base.mutex.Lock()
 					vpc.MethodByName("Init").Call([]reflect.Value{rvw})
-					p.Site.Base.mutex.Unlock()
 				}
 			case 3:
-				p.Site.Base.mutex.Lock()
 				vpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
-				p.Site.Base.mutex.Unlock()
 			default:
-				p.Site.Base.mutex.Lock()
 				vpc.MethodByName("Init").Call([]reflect.Value{})
-				p.Site.Base.mutex.Unlock()
 			}
 		}
 	}
@@ -310,22 +304,14 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 				switch mt.NumIn() {
 				case 2:
 					if mt.In(1) == rvr.Type() {
-						p.Site.Base.mutex.Lock()
 						vnpc.MethodByName("Init").Call([]reflect.Value{rvr})
-						p.Site.Base.mutex.Unlock()
 					} else {
-						p.Site.Base.mutex.Lock()
 						vnpc.MethodByName("Init").Call([]reflect.Value{rvw})
-						p.Site.Base.mutex.Unlock()
 					}
 				case 3:
-					p.Site.Base.mutex.Lock()
 					vnpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
-					p.Site.Base.mutex.Unlock()
 				default:
-					p.Site.Base.mutex.Lock()
 					vnpc.MethodByName("Init").Call([]reflect.Value{})
-					p.Site.Base.mutex.Unlock()
 				}
 			}
 		}
@@ -344,34 +330,52 @@ func (p *Page) setStaticDocument() {
 	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
 	p.Site.Base.rmutex.RUnlock()
 
-	if cssFi, err := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath); err == nil && cssFi.IsDir() {
+	p.Site.Base.mutex.Lock()
+	cssFi, cssErr := os.Stat(p.Config.StaticCssDirectory + p.CurrentPath)
+	jsFi, jsErr := os.Stat(p.Config.StaticJsDirectory + p.CurrentPath)
+	imgFi, imgErr := os.Stat(p.Config.StaticImgDirectory + p.CurrentPath)
+	p.Site.Base.mutex.Unlock()
+
+	if cssErr == nil && cssFi.IsDir() {
 		cssPath := strings.Trim(p.CurrentPath, "/")
 		DcssPath := p.Config.StaticCssDirectory + cssPath + "/"
 		p.Document.Css[cssPath] = siteRootRightTrim + DcssPath[1:]
-		if _, err := os.Stat(DcssPath + "global.css"); err == nil {
+
+		p.Site.Base.mutex.Lock()
+		_, errgcss := os.Stat(DcssPath + "global.css")
+		_, errcss := os.Stat(DcssPath + fileNameNoExt + ".css")
+		p.Site.Base.mutex.Unlock()
+
+		if errgcss == nil {
 			p.Document.GlobalIndexCssFile = p.Document.Css[cssPath] + "global.css"
 		}
 
-		if _, err := os.Stat(DcssPath + fileNameNoExt + ".css"); err == nil {
+		if errcss == nil {
 			p.Document.IndexCssFile = p.Document.Css[cssPath] + fileNameNoExt + ".css"
 		}
 
 	}
 
-	if jsFi, err := os.Stat(p.Config.StaticJsDirectory + p.CurrentPath); err == nil && jsFi.IsDir() {
+	if jsErr == nil && jsFi.IsDir() {
 		jsPath := strings.Trim(p.CurrentPath, "/")
 		DjsPath := p.Config.StaticJsDirectory + jsPath + "/"
 		p.Document.Js[jsPath] = siteRootRightTrim + DjsPath[1:]
-		if _, err := os.Stat(DjsPath + "global.js"); err == nil {
+
+		p.Site.Base.mutex.Lock()
+		_, errgjs := os.Stat(DjsPath + "global.js")
+		_, errjs := os.Stat(DjsPath + fileNameNoExt + ".js")
+		p.Site.Base.mutex.Unlock()
+
+		if errgjs == nil {
 			p.Document.GlobalIndexJsFile = p.Document.Js[jsPath] + "global.js"
 		}
 
-		if _, err := os.Stat(DjsPath + fileNameNoExt + ".js"); err == nil {
+		if errjs == nil {
 			p.Document.IndexJsFile = p.Document.Js[jsPath] + fileNameNoExt + ".js"
 		}
 	}
 
-	if imgFi, err := os.Stat(p.Config.StaticImgDirectory + p.CurrentPath); err == nil && imgFi.IsDir() {
+	if imgErr == nil && imgFi.IsDir() {
 		imgPath := strings.Trim(p.CurrentPath, "/")
 		DimgPath := p.Config.StaticImgDirectory + imgPath + "/"
 		p.Document.Img[imgPath] = siteRootRightTrim + DimgPath[1:]
