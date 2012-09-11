@@ -10,7 +10,6 @@ import (
 	"reflect"
 	"strconv"
 	"strings"
-	"sync"
 	"text/template"
 	"time"
 )
@@ -27,11 +26,9 @@ type Page struct {
 	CurrentAction       string
 	Template            string
 	TemplateFunc        template.FuncMap
-	*Config
+	Config
 	Document
 	supportStatic bool
-	rmutex        sync.RWMutex
-	mutex         sync.Mutex
 	globalTpl     *template.Template
 }
 
@@ -53,7 +50,8 @@ func NewPage(param PageParam) Page {
 				MAX_FORM_SIZE: param.MaxFormSize,
 				Session:       session.New(param.CookieName, param.Expires, param.TimerDuration),
 			},
-			Version: strconv.Itoa(time.Now().Year()),
+			TemplateCache: map[string]templateCache{},
+			Version:       strconv.Itoa(time.Now().Year()),
 		},
 		header:       map[string][]string{},
 		Controller:   map[string]interface{}{},
@@ -231,38 +229,28 @@ func (p *Page) setCurrentInfo(path string) {
 }
 
 func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Request) {
-	p.mutex.Lock()
-	p.Site.Base.Cookie = r.Cookies()
-	p.setCurrentInfo(r.URL.Path)
-	p.Template = p.CurrentController + p.CurrentFileName
-	p.mutex.Unlock()
-
-	p.rmutex.RLock()
 	pageOriController := p.GetController(p.CurrentPath)
 	rv := reflect.ValueOf(pageOriController)
-	p.rmutex.RUnlock()
-
 	rvw, rvr := reflect.ValueOf(w), reflect.ValueOf(r)
 	rt := rv.Type()
 	vpc := reflect.New(rt)
 	iv := reflect.ValueOf(i).Elem()
-	vpc.Elem().FieldByName("Application").Set(iv)
+	vapc := vpc.Elem().FieldByName("Application")
+	vapc.Set(iv)
+	tapc := vapc.Type()
+	if _, found := tapc.FieldByName("RW"); found {
+		vapc.FieldByName("RW").Set(rvw)
+	}
+
+	if _, found := tapc.FieldByName("R"); found {
+		vapc.FieldByName("R").Set(rvr)
+	}
+
+	vppc := vapc.FieldByName("Page")
+	ppc := vppc.Addr().Interface().(*Page)
 	tpc := vpc.Type()
-	if _, found := tpc.Elem().FieldByName("RW"); found {
-		rvarw := vpc.Elem().FieldByName("RW")
-		rvarw.Set(rvw)
-	}
 
-	if _, found := tpc.Elem().FieldByName("R"); found {
-		rvar := vpc.Elem().FieldByName("R")
-		rvar.Set(rvr)
-	}
-
-	vppc := vpc.Elem().FieldByName("Page")
-	ppc := vppc.Interface().(Page)
-
-	if _, ok := tpc.MethodByName(ppc.CurrentAction); ok && ppc.CurrentAction != "Init" {
-		p.rmutex.RLock()
+	if ppc.CurrentAction != "Init" {
 		if rm, ok := tpc.MethodByName("Init"); ok {
 			mt := rm.Type
 			switch mt.NumIn() {
@@ -278,9 +266,10 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 				vpc.MethodByName("Init").Call([]reflect.Value{})
 			}
 		}
+	}
 
+	if rm, ok := tpc.MethodByName(ppc.CurrentAction); ok {
 		if ppc.Document.Close == false {
-			rm, _ := tpc.MethodByName(ppc.CurrentAction)
 			mt := rm.Type
 			switch mt.NumIn() {
 			case 2:
@@ -295,64 +284,39 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 				vpc.MethodByName(ppc.CurrentAction).Call([]reflect.Value{})
 			}
 		}
-
-		p.rmutex.RUnlock()
-
-		ppc = vppc.Interface().(Page)
 	} else {
 		if !strings.Contains(tpc.String(), "Page404") {
 			notFountRV := reflect.ValueOf(ppc.NotFoundtController)
 			notFountRT := notFountRV.Type()
 			vnpc := reflect.New(notFountRT)
-			vnpc.Elem().FieldByName("Application").Set(iv)
+			vanpc := vnpc.Elem().FieldByName("Application")
+			vanpc.Set(vapc)
+			vanpc.FieldByName("Page").Set(vppc)
+			vpnpc := vanpc.FieldByName("Page")
+			ppc = vpnpc.Addr().Interface().(*Page)
 			tnpc := vnpc.Type()
-			if _, found := tnpc.Elem().FieldByName("RW"); found {
-				rvarw := vnpc.Elem().FieldByName("RW")
-				rvarw.Set(rvw)
-			}
-
-			if _, found := tnpc.Elem().FieldByName("R"); found {
-				rvar := vnpc.Elem().FieldByName("R")
-				rvar.Set(rvr)
-			}
-
-			vppc = vnpc.Elem().FieldByName("Page")
 
 			if rm, ok := tnpc.MethodByName("Init"); ok {
 				mt := rm.Type
 				switch mt.NumIn() {
 				case 2:
 					if mt.In(1) == rvr.Type() {
-						p.rmutex.RLock()
 						vnpc.MethodByName("Init").Call([]reflect.Value{rvr})
-						p.rmutex.RUnlock()
 					} else {
-						p.rmutex.RLock()
 						vnpc.MethodByName("Init").Call([]reflect.Value{rvw})
-						p.rmutex.RUnlock()
 					}
 				case 3:
-					p.rmutex.RLock()
 					vnpc.MethodByName("Init").Call([]reflect.Value{rvw, rvr})
-					p.rmutex.RUnlock()
 				default:
-					p.rmutex.RLock()
 					vnpc.MethodByName("Init").Call([]reflect.Value{})
-					p.rmutex.RUnlock()
 				}
 			}
-
-			ppc = vppc.Interface().(Page)
 		}
 	}
 
-	vppc.Set(reflect.ValueOf(ppc))
-
 	if ppc.supportStatic {
-		p.rmutex.RLock()
 		ppc.setStaticDocument()
 		ppc.routeTemplate(w, r)
-		p.rmutex.RUnlock()
 	}
 
 }
@@ -403,12 +367,18 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 	if p.Document.Close == false && p.Document.Hide == false {
 		if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
 			globalTemplate, _ := p.globalTpl.Clone()
-			if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).ParseFiles(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
+			tmplCache := p.GetTemplateCache(p.Template)
+			if tplFi.ModTime().Unix() > tmplCache.ModTime {
+				p.SetTemplateCache(p.Template, p.Config.TemplateDirectory+p.Config.ThemeDirectory+p.Template)
+				tmplCache = p.GetTemplateCache(p.Template)
+			}
+
+			if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).Parse(tmplCache.Content); err == nil {
 				templateVar := map[string]interface{}{
 					"G":        p.Base.GET,
 					"P":        p.Base.POST,
-					"C":        p.Base.COOKIE,
 					"S":        p.Base.SESSION,
+					"C":        p.Base.COOKIE,
 					"Siteroot": p.Site.Root,
 					"Version":  p.Site.Version,
 					"Template": p.Template,
@@ -477,6 +447,11 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 				log.Println(err)
 				w.Write([]byte(fmt.Sprint(err)))
 			}
+		} else {
+			tmplCache := p.GetTemplateCache(p.Template)
+			if tmplCache.ModTime > 0 {
+				p.DelTemplateCache(p.Template)
+			}
 		}
 	}
 }
@@ -499,11 +474,17 @@ func (p *Page) HandleStatic() {
 
 func (p *Page) handleRoute(i interface{}) {
 	http.HandleFunc(p.Site.Root, func(w http.ResponseWriter, r *http.Request) {
-		p.mutex.Lock()
+		p.Site.Base.mutex.Lock()
+
 		if p.Config.Reload() {
 			p.reset(true)
 		}
-		p.mutex.Unlock()
+
+		p.Site.Base.Cookie = r.Cookies()
+		p.setCurrentInfo(r.URL.Path)
+		p.Template = p.CurrentController + p.CurrentFileName
+
+		p.Site.Base.mutex.Unlock()
 
 		p.routeController(i, w, r)
 	})

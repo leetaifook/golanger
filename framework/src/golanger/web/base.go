@@ -6,10 +6,13 @@ import (
 	"net/http"
 	"net/url"
 	"strconv"
+	"sync"
 	"time"
 )
 
 type Base struct {
+	rmutex         sync.RWMutex
+	mutex          sync.Mutex
 	GET            map[string]string
 	POST           map[string]string
 	COOKIE         map[string]string
@@ -58,7 +61,9 @@ func (b *Base) Init(w http.ResponseWriter, r *http.Request) *Base {
 	}()
 
 	if b.SupportSession {
+		b.mutex.Lock()
 		b.SESSION = b.Session.Get(w, r)
+		b.mutex.Unlock()
 	}
 
 	return b
