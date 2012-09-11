@@ -27,20 +27,16 @@ func (s *Site) Init(w http.ResponseWriter, r *http.Request) *Site {
 func (s *Site) SetTemplateCache(tmplKey, tmplPath string) {
 	if tmplFi, err := os.Stat(tmplPath); err == nil {
 		if b, err := ioutil.ReadFile(tmplPath); err == nil {
-			s.Base.mutex.Lock()
 			s.TemplateCache[tmplKey] = templateCache{
 				ModTime: tmplFi.ModTime().Unix(),
 				Content: string(b),
 			}
-			s.Base.mutex.Unlock()
 		}
 	}
 
 }
 
 func (s *Site) GetTemplateCache(tmplKey string) templateCache {
-	s.Base.rmutex.RLock()
-	defer s.Base.rmutex.RUnlock()
 	if tmpl, ok := s.TemplateCache[tmplKey]; ok {
 		return tmpl
 	}
@@ -49,7 +45,5 @@ func (s *Site) GetTemplateCache(tmplKey string) templateCache {
 }
 
 func (s *Site) DelTemplateCache(tmplKey string) {
-	s.Base.mutex.Lock()
 	delete(s.TemplateCache, tmplKey)
-	s.Base.mutex.Unlock()
 }

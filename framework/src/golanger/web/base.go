@@ -1,7 +1,6 @@
 package web
 
 import (
-	"golanger/session"
 	"mime"
 	"net/http"
 	"net/url"
@@ -11,16 +10,13 @@ import (
 )
 
 type Base struct {
-	rmutex         sync.RWMutex
-	mutex          sync.Mutex
-	GET            map[string]string
-	POST           map[string]string
-	COOKIE         map[string]string
-	SESSION        map[string]interface{}
-	MAX_FORM_SIZE  int64
-	SupportSession bool
-	Session        *session.SessionManager
-	Cookie         []*http.Cookie
+	rmutex        sync.RWMutex
+	mutex         sync.Mutex
+	GET           map[string]string
+	POST          map[string]string
+	COOKIE        map[string]string
+	MAX_FORM_SIZE int64
+	Cookie        []*http.Cookie
 }
 
 func (b *Base) Init(w http.ResponseWriter, r *http.Request) *Base {
@@ -59,12 +55,6 @@ func (b *Base) Init(w http.ResponseWriter, r *http.Request) *Base {
 
 		return c
 	}()
-
-	if b.SupportSession {
-		b.mutex.Lock()
-		b.SESSION = b.Session.Get(w, r)
-		b.mutex.Unlock()
-	}
 
 	return b
 }
