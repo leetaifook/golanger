@@ -386,14 +386,21 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 	if p.Document.Close == false && p.Document.Hide == false {
 		if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
 			globalTemplate, _ := p.globalTpl.Clone()
+			p.Site.Base.rmutex.RLock()
 			tmplCache := p.GetTemplateCache(p.Template)
+
 			if tplFi.ModTime().Unix() > tmplCache.ModTime {
+				p.Site.Base.mutex.Lock()
 				p.SetTemplateCache(p.Template, p.Config.TemplateDirectory+p.Config.ThemeDirectory+p.Template)
+				p.Site.Base.mutex.Unlock()
+
 				tmplCache = p.GetTemplateCache(p.Template)
 			}
 
+			p.Site.Base.rmutex.RUnlock()
+
 			if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).Parse(tmplCache.Content); err == nil {
-				p.Site.Base.rmutex.RLock()
+				p.Site.Base.mutex.Lock()
 				templateVar := map[string]interface{}{
 					"G":        p.Base.GET,
 					"P":        p.Base.POST,
@@ -402,7 +409,7 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					"Siteroot": p.Site.Root,
 					"Version":  p.Site.Version,
 				}
-				p.Site.Base.rmutex.RUnlock()
+				p.Site.Base.mutex.Unlock()
 
 				templateVar["Template"] = p.Template
 				templateVar["D"] = p.Document
@@ -474,10 +481,14 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte(fmt.Sprint(err)))
 			}
 		} else {
+			p.Site.Base.rmutex.RLock()
 			tmplCache := p.GetTemplateCache(p.Template)
 			if tmplCache.ModTime > 0 {
+				p.Site.Base.mutex.Lock()
 				p.DelTemplateCache(p.Template)
+				p.Site.Base.mutex.Unlock()
 			}
+			p.Site.Base.rmutex.RUnlock()
 		}
 	}
 }
