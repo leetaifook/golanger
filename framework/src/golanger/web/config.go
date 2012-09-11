@@ -34,8 +34,8 @@ type Config struct {
 	configLastModTime         int64
 }
 
-func NewConfig() *Config {
-	return &Config{
+func NewConfig() Config {
+	return Config{
 		TemplateDirectory:       "./view/",
 		TemporaryDirectory:      "./tmp/",
 		StaticDirectory:         "./static/",
@@ -84,7 +84,7 @@ func (c *Config) Reload() bool {
 	yamlFi, _ := os.Stat(configPath)
 	if yamlFi.ModTime().Unix() > c.configLastModTime {
 		yamlData, _ := ioutil.ReadFile(configPath)
-		*c = *NewConfig()
+		*c = NewConfig()
 		goyaml.Unmarshal(yamlData, c)
 		c.configPath = configPath
 		c.configLastModTime = yamlFi.ModTime().Unix()
