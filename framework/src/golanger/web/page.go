@@ -385,7 +385,7 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 
 	if p.Document.Close == false && p.Document.Hide == false {
 		if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
-			globalTemplate, _ := p.globalTpl.Clone()
+
 			p.Site.Base.rmutex.RLock()
 			tmplCache := p.GetTemplateCache(p.Template)
 
@@ -397,10 +397,14 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 				tmplCache = p.GetTemplateCache(p.Template)
 			}
 
+			globalTemplate, _ := p.globalTpl.Clone()
+			p.Site.Base.mutex.Lock()
+			pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).Parse(tmplCache.Content)
+			p.Site.Base.mutex.Unlock()
 			p.Site.Base.rmutex.RUnlock()
 
-			if pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).Parse(tmplCache.Content); err == nil {
-				p.Site.Base.mutex.Lock()
+			if err == nil {
+				p.Site.Base.rmutex.RLock()
 				templateVar := map[string]interface{}{
 					"G":        p.Base.GET,
 					"P":        p.Base.POST,
@@ -409,7 +413,7 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					"Siteroot": p.Site.Root,
 					"Version":  p.Site.Version,
 				}
-				p.Site.Base.mutex.Unlock()
+				p.Site.Base.rmutex.RUnlock()
 
 				templateVar["Template"] = p.Template
 				templateVar["D"] = p.Document
