@@ -61,9 +61,7 @@ func (b *Base) Init(w http.ResponseWriter, r *http.Request) *Base {
 	}()
 
 	if b.SupportSession {
-		b.mutex.Lock()
 		b.SESSION = b.Session.Get(w, r)
-		b.mutex.Unlock()
 	}
 
 	return b
