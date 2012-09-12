@@ -62,15 +62,21 @@ func (p *PagePlay) Index() {
 	if id == "" {
 		return
 	}
-	fmt.Println(id)
 	play := fmt.Sprintf(PLAY, id)
 
-	resp, _ := http.Get(play)
-	defer resp.Body.Close()
+	resp, err := http.Get(play)
+    if err != nil {
+       fmt.Println("Err: ", err)
+       return
+    }
+    defer resp.Body.Close()
 
 	buf, _ := ioutil.ReadAll(resp.Body)
 	body := utils.M{}
-	body["code"] = string(getCode(buf))
+	body["code"] = strings.TrimSpace(string(getCode(buf)))
+    if body["code"] == "" {
+        return
+    }
 	p.Body = body
 }
 
@@ -82,13 +88,14 @@ func (p *PagePlay) Compile() {
 	data := url.Values{"body": {strings.TrimSpace(p.POST["body"])}}
 	resp, err := http.PostForm(COMPILE, data)
 
-	defer resp.Body.Close()
 	if err != nil {
 		m := Compiled{"Error communicating with remote server.", ""}
 		ret, _ := json.Marshal(m)
 		p.RW.Write(ret)
 		return
 	}
+	defer resp.Body.Close()
+
 	buf, _ := ioutil.ReadAll(resp.Body)
 	p.RW.Write(buf)
 }
@@ -101,13 +108,14 @@ func (p *PagePlay) Fmt() {
 	data := url.Values{"body": {strings.TrimSpace(p.POST["body"])}}
 	resp, err := http.PostForm(FMT, data)
 
-	defer resp.Body.Close()
 	if err != nil {
 		m := Compiled{"Error communicating with remote server.", ""}
 		ret, _ := json.Marshal(m)
 		p.RW.Write(ret)
 		return
 	}
+	defer resp.Body.Close()
+
 	buf, _ := ioutil.ReadAll(resp.Body)
 	p.RW.Write(buf)
 }
@@ -124,13 +132,14 @@ func (p *PagePlay) Share() {
     }
 	resp, err := http.Post(SHARE, p.R.Header.Get("Content-type"), strings.NewReader(data))
 
-	defer resp.Body.Close()
 	if err != nil {
 		m := Compiled{"Error communicating with remote server.", ""}
 		ret, _ := json.Marshal(m)
 		p.RW.Write(ret)
 		return
 	}
+	defer resp.Body.Close()
+
 	buf, _ := ioutil.ReadAll(resp.Body)
 	p.RW.Write(buf)
 }
