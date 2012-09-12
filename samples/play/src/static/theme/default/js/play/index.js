@@ -241,7 +241,7 @@ function playground(opts) {
 						window.location = opts['shareRedirect'] + xhr.responseText;
 					}
 					if (shareURL) {
-						var url = origin(window.location) + "/index?p=" + xhr.responseText;
+						var url = origin(window.location) + "/?p=" + xhr.responseText;
 						shareURL.show().val(url).focus().select();
 					}
 				}
