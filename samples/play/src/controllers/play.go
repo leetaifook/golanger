@@ -72,7 +72,6 @@ func (p *PagePlay) Index() {
 	body := utils.M{}
 	body["code"] = string(getCode(buf))
 	p.Body = body
-	fmt.Printf("%v\n", p.Body)
 }
 
 func (p *PagePlay) Compile() {
