@@ -1,7 +1,7 @@
 package models
 
 import (
-	"golanger/utils"
+	"golanger.com/utils"
 )
 
 var (

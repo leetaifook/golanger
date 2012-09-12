@@ -2,8 +2,8 @@ package models
 
 import (
 	"database/sql"
-	. "golanger/database/activerecord"
-	. "golanger/middleware"
+	. "golanger.com/database/activerecord"
+	. "golanger.com/middleware"
 )
 
 type Todo struct {
