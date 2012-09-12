@@ -4,7 +4,7 @@ import (
 	. "controllers"
 	"flag"
 	"fmt"
-	. "golanger/middleware"
+	. "golanger.com/middleware"
 	"helper"
 	"os"
 	"path/filepath"

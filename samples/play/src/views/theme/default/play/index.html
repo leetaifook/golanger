@@ -38,13 +38,18 @@
 			<input type="text" id="shareURL">
 		</div>
 		
-		<textarea itemprop="description" id="code" name="code"  autocorrect="off" autocomplete="off" autocapitalize="off">package main
+        <textarea itemprop="description" id="code" name="code"  autocorrect="off" autocomplete="off" autocapitalize="off">
+{{if .D.Body }}
+{{ .D.Body.code }}
+{{else}}
+package main
 
 import &#34;fmt&#34;
 
 func main() {
-	fmt.Println(&#34;Hello, playground&#34;)
+	fmt.Println(&#34;Hello, Golanger&#34;)
 }
+{{end}}
 </textarea>
 		<div id="output"></div>
 		<img itemprop="image" src="http://golang.org/doc/gopher/project.png" style="display:none">
