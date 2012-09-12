@@ -1,4 +1,4 @@
-// Copyright 2012 The Golanger Authors. All rights reserved.
+
 // Use of this source code is governed by a GPLv3
 // license that can be found in the LICENSE file.
 
@@ -12,6 +12,8 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"regexp"
+	"golanger/utils"
 )
 
 const (
@@ -22,7 +24,7 @@ const (
 )
 
 type PagePlay struct {
-	*Application
+	Application
 }
 
 type Compiled struct {
@@ -32,6 +34,24 @@ type Compiled struct {
 
 func init() {
 	App.RegisterController("play/", PagePlay{})
+}
+
+func (p *PagePlay) Init() {
+	p.Application.Init()
+}
+
+func getCode(html []byte) []byte {
+	beginRegStr := `(?Usmi)<textarea(.*)>(.*)</textarea>`
+
+    beginRegex, _ := regexp.Compile(beginRegStr)
+
+    pos := beginRegex.FindAllSubmatch(html, 1024)
+    if pos == nil {
+		fmt.Println("Nothing matched!")
+        return nil
+    }
+
+	return pos[0][2]
 }
 
 func (p *PagePlay) Index() {
@@ -49,7 +69,10 @@ func (p *PagePlay) Index() {
 	defer resp.Body.Close()
 
 	buf, _ := ioutil.ReadAll(resp.Body)
-	fmt.Println(string(buf))
+	body := utils.M{}
+	body["code"] = string(getCode(buf))
+	p.Body = body
+	fmt.Printf("%v\n", p.Body)
 }
 
 func (p *PagePlay) Compile() {
@@ -95,9 +118,12 @@ func (p *PagePlay) Share() {
 		return
 	}
 
-	// FIXED
-	data := url.Values{"body": {strings.TrimSpace(p.POST["body"])}}
-	resp, err := http.PostForm(SHARE, data)
+    var data string
+    for key, _ := range p.R.Form {
+        data = key
+        break
+    }
+	resp, err := http.Post(SHARE, p.R.Header.Get("Content-type"), strings.NewReader(data))
 
 	defer resp.Body.Close()
 	if err != nil {
@@ -109,3 +135,4 @@ func (p *PagePlay) Share() {
 	buf, _ := ioutil.ReadAll(resp.Body)
 	p.RW.Write(buf)
 }
+
