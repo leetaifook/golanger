@@ -1,1 +1,1 @@
-framework/src/golanger/doc.go
+framework/doc.go
