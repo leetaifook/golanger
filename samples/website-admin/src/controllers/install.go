@@ -92,7 +92,7 @@ func (p *PageInstall) Index() {
 			p.Session.Clear(sessionSign)
 		}
 
-		p.RW.Write([]byte("安装成功...<br/>用户名:" + username + ",密码:" + password))
+		p.RW.Write([]byte("安装成功...<br/>用户名:"+username+",密码:"+password) + "<br/>")
 	}
 
 	http.Redirect(p.RW, p.R, "/login.html", http.StatusFound)
