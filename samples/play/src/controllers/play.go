@@ -62,19 +62,21 @@ func (p *PagePlay) Index() {
 	if id == "" {
 		return
 	}
-	fmt.Println(id)
 	play := fmt.Sprintf(PLAY, id)
 
 	resp, err := http.Get(play)
     if err != nil {
-        fmt.Println("Err: ", err)
+       fmt.Println("Err: ", err)
        return
     }
     defer resp.Body.Close()
 
 	buf, _ := ioutil.ReadAll(resp.Body)
 	body := utils.M{}
-	body["code"] = string(getCode(buf))
+	body["code"] = strings.TrimSpace(string(getCode(buf)))
+    if body["code"] == "" {
+        return
+    }
 	p.Body = body
 }
 
