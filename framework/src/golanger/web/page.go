@@ -16,7 +16,7 @@ import (
 )
 
 type Page struct {
-	*Site
+	*site
 	Config
 	Document
 	Controller          map[string]interface{}
@@ -49,8 +49,8 @@ func NewPage(param PageParam) Page {
 	}
 
 	return Page{
-		Site: &Site{
-			Base: &Base{
+		site: &site{
+			base: &base{
 				header: map[string][]string{},
 			},
 			templateFunc:  template.FuncMap{},
@@ -72,26 +72,26 @@ func NewPage(param PageParam) Page {
 }
 
 func (p *Page) Init(w http.ResponseWriter, r *http.Request) {
-	p.Site.Base.mutex.Lock()
-	p.Site.Init(w, r)
-	p.Site.Base.mutex.Unlock()
+	p.site.base.mutex.Lock()
+	p.site.Init(w, r)
+	p.site.base.mutex.Unlock()
 
-	p.Site.Base.rmutex.RLock()
-	p.GET = p.Site.Base.getHttpGet(r)
-	p.POST = p.Site.Base.getHttpPost(r, p.MAX_FORM_SIZE)
-	p.COOKIE = p.Site.Base.getHttpCookie(r)
-	if p.Site.supportSession {
+	p.site.base.rmutex.RLock()
+	p.GET = p.site.base.getHttpGet(r)
+	p.POST = p.site.base.getHttpPost(r, p.MAX_FORM_SIZE)
+	p.COOKIE = p.site.base.getHttpCookie(r)
+	if p.site.supportSession {
 		p.SESSION = p.Session.Get(w, r)
 	}
 
-	if p.Site.Base.header != nil || len(p.Site.Base.header) > 0 {
-		for t, s := range p.Site.Base.header {
+	if p.site.base.header != nil || len(p.site.base.header) > 0 {
+		for t, s := range p.site.base.header {
 			for _, v := range s {
 				w.Header().Add(t, v)
 			}
 		}
 	}
-	p.Site.Base.rmutex.RUnlock()
+	p.site.base.rmutex.RUnlock()
 }
 
 func (p *Page) SetDefaultController(i interface{}) *Page {
@@ -123,8 +123,8 @@ func (p *Page) UpdateController(oldUrlPath, relUrlPath string, i interface{}) *P
 
 func (p *Page) GetController(urlPath string) interface{} {
 	var relUrlPath string
-	if strings.HasPrefix(urlPath, p.Site.Root) {
-		relUrlPath = urlPath[len(p.Site.Root):]
+	if strings.HasPrefix(urlPath, p.site.Root) {
+		relUrlPath = urlPath[len(p.site.Root):]
 	} else {
 		relUrlPath = urlPath
 	}
@@ -144,8 +144,8 @@ func (p *Page) Load(configPath string) {
 
 func (p *Page) reset(update bool) {
 	if update {
-		if p.Site.supportSession != p.Config.SupportSession {
-			p.Site.supportSession = p.Config.SupportSession
+		if p.site.supportSession != p.Config.SupportSession {
+			p.site.supportSession = p.Config.SupportSession
 		}
 
 		if p.Document.Theme != p.Config.Theme {
@@ -156,24 +156,24 @@ func (p *Page) reset(update bool) {
 			p.Document.Static = p.Config.SiteRoot + p.Config.StaticDirectory[2:]
 		}
 
-		if p.Site.Root == p.Config.SiteRoot {
+		if p.site.Root == p.Config.SiteRoot {
 			return
 		} else {
 			p.SetDefaultController(p.GetController(p.Config.IndexDirectory))
-			p.UpdateController(p.Site.Root, p.Config.SiteRoot, p.DefaultController)
-			p.Site.Root = p.Config.SiteRoot
+			p.UpdateController(p.site.Root, p.Config.SiteRoot, p.DefaultController)
+			p.site.Root = p.Config.SiteRoot
 		}
 	} else {
-		p.Site.supportSession = p.Config.SupportSession
+		p.site.supportSession = p.Config.SupportSession
 		p.Document.Theme = p.Config.Theme
-		p.Site.Root = p.Config.SiteRoot
-		p.Document.Static = p.Site.Root + p.Config.StaticDirectory[2:]
+		p.site.Root = p.Config.SiteRoot
+		p.Document.Static = p.site.Root + p.Config.StaticDirectory[2:]
 		p.SetDefaultController(p.GetController(p.Config.IndexDirectory))
-		p.RegisterController(p.Site.Root, p.DefaultController)
-		p.Site.globalTemplate = template.New("globalTpl").Funcs(p.Site.templateFunc)
+		p.RegisterController(p.site.Root, p.DefaultController)
+		p.site.globalTemplate = template.New("globalTpl").Funcs(p.site.templateFunc)
 	}
 
-	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
+	siteRootRightTrim := p.site.Root[:len(p.site.Root)-1]
 
 	if globalCssFi, err := os.Stat(p.Config.StaticCssDirectory + "/global/"); err == nil && globalCssFi.IsDir() {
 		DcssPath := p.Config.StaticCssDirectory + "global/"
@@ -196,15 +196,15 @@ func (p *Page) reset(update bool) {
 		p.Document.Img["global"] = siteRootRightTrim + DimgPath[1:]
 	}
 
-	if t, _ := p.Site.globalTemplate.ParseGlob(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Config.TemplateGlobalDirectory + p.Config.TemplateGlobalFile); t != nil {
-		p.Site.globalTemplate = t
+	if t, _ := p.site.globalTemplate.ParseGlob(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Config.TemplateGlobalDirectory + p.Config.TemplateGlobalFile); t != nil {
+		p.site.globalTemplate = t
 	}
 }
 
 func (p *Page) setCurrentInfo(path string) {
 	urlPath, fileName := filepath.Split(path)
-	if urlPath == p.Site.Root {
-		urlPath = p.Site.Root + p.Config.IndexDirectory
+	if urlPath == p.site.Root {
+		urlPath = p.site.Root + p.Config.IndexDirectory
 	}
 
 	if fileName == "" {
@@ -213,7 +213,7 @@ func (p *Page) setCurrentInfo(path string) {
 
 	p.currentPath = urlPath
 	p.currentFileName = fileName
-	p.CurrentController = urlPath[len(p.Site.Root):]
+	p.CurrentController = urlPath[len(p.site.Root):]
 	p.CurrentAction = strings.Replace(strings.Title(strings.Replace(p.currentFileName[:len(p.currentFileName)-len(filepath.Ext(p.currentFileName))], "_", " ", -1)), " ", "", -1)
 }
 
@@ -316,9 +316,9 @@ func (p *Page) routeController(i interface{}, w http.ResponseWriter, r *http.Req
 
 func (p *Page) setStaticDocument() {
 	fileNameNoExt := p.currentFileName[:len(p.currentFileName)-len(filepath.Ext(p.currentFileName))]
-	p.Site.Base.rmutex.RLock()
-	siteRootRightTrim := p.Site.Root[:len(p.Site.Root)-1]
-	p.Site.Base.rmutex.RUnlock()
+	p.site.base.rmutex.RLock()
+	siteRootRightTrim := p.site.Root[:len(p.site.Root)-1]
+	p.site.base.rmutex.RUnlock()
 
 	cssFi, cssErr := os.Stat(p.Config.StaticCssDirectory + p.currentPath)
 	jsFi, jsErr := os.Stat(p.Config.StaticJsDirectory + p.currentPath)
@@ -374,20 +374,20 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 	if p.Document.Close == false && p.Document.Hide == false {
 		if tplFi, err := os.Stat(p.Config.TemplateDirectory + p.Config.ThemeDirectory + p.Template); err == nil {
 
-			p.Site.Base.rmutex.RLock()
+			p.site.base.rmutex.RLock()
 			tmplCache := p.GetTemplateCache(p.Template)
 
 			if tplFi.ModTime().Unix() > tmplCache.ModTime {
-				p.Site.Base.mutex.Lock()
+				p.site.base.mutex.Lock()
 				p.SetTemplateCache(p.Template, p.Config.TemplateDirectory+p.Config.ThemeDirectory+p.Template)
-				p.Site.Base.mutex.Unlock()
+				p.site.base.mutex.Unlock()
 
 				tmplCache = p.GetTemplateCache(p.Template)
 			}
 
-			globalTemplate, _ := p.Site.globalTemplate.Clone()
+			globalTemplate, _ := p.site.globalTemplate.Clone()
 			pageTemplate, err := globalTemplate.New(filepath.Base(p.Template)).Parse(tmplCache.Content)
-			p.Site.Base.rmutex.RUnlock()
+			p.site.base.rmutex.RUnlock()
 
 			if err == nil {
 				templateVar := map[string]interface{}{
@@ -400,15 +400,15 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					"Template": p.Template,
 				}
 
-				p.Site.Base.rmutex.RLock()
-				templateVar["Siteroot"] = p.Site.Root
-				templateVar["Version"] = p.Site.Version
-				p.Site.Base.rmutex.RUnlock()
+				p.site.base.rmutex.RLock()
+				templateVar["Siteroot"] = p.site.Root
+				templateVar["Version"] = p.site.Version
+				p.site.base.rmutex.RUnlock()
 
 				if p.Document.GenerateHtml {
-					p.Site.Base.rmutex.RLock()
-					htmlFile := p.Config.StaticDirectory + p.Config.HtmlDirectory + p.Site.Root + p.Template
-					p.Site.Base.rmutex.RUnlock()
+					p.site.base.rmutex.RLock()
+					htmlFile := p.Config.StaticDirectory + p.Config.HtmlDirectory + p.site.Root + p.Template
+					p.site.base.rmutex.RUnlock()
 
 					htmlDir := filepath.Dir(htmlFile)
 					if htmlDirFi, err := os.Stat(htmlDir); err != nil || !htmlDirFi.IsDir() {
@@ -450,9 +450,9 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 					}
 
 					if p.Config.AutoJumpToHtml {
-						p.Site.Base.rmutex.RLock()
-						http.Redirect(w, r, p.Site.Root+htmlFile[2:], http.StatusFound)
-						p.Site.Base.rmutex.RUnlock()
+						p.site.base.rmutex.RLock()
+						http.Redirect(w, r, p.site.Root+htmlFile[2:], http.StatusFound)
+						p.site.base.rmutex.RUnlock()
 					} else {
 						err := pageTemplate.Execute(w, templateVar)
 						if err != nil {
@@ -471,21 +471,21 @@ func (p *Page) routeTemplate(w http.ResponseWriter, r *http.Request) {
 				w.Write([]byte(fmt.Sprint(err)))
 			}
 		} else {
-			p.Site.Base.rmutex.RLock()
+			p.site.base.rmutex.RLock()
 			tmplCache := p.GetTemplateCache(p.Template)
 			if tmplCache.ModTime > 0 {
-				p.Site.Base.mutex.Lock()
+				p.site.base.mutex.Lock()
 				p.DelTemplateCache(p.Template)
-				p.Site.Base.mutex.Unlock()
+				p.site.base.mutex.Unlock()
 			}
-			p.Site.Base.rmutex.RUnlock()
+			p.site.base.rmutex.RUnlock()
 		}
 	}
 }
 
 func (p *Page) HandleFavicon() {
 	p.supportStatic = true
-	http.HandleFunc(p.Site.Root+"favicon.ico", func(w http.ResponseWriter, r *http.Request) {
+	http.HandleFunc(p.site.Root+"favicon.ico", func(w http.ResponseWriter, r *http.Request) {
 		staticPath := p.Config.StaticDirectory + p.Config.ThemeDirectory + "favicon.ico"
 		http.ServeFile(w, r, staticPath)
 	})
@@ -500,15 +500,15 @@ func (p *Page) HandleStatic() {
 }
 
 func (p *Page) handleRoute(i interface{}) {
-	http.HandleFunc(p.Site.Root, func(w http.ResponseWriter, r *http.Request) {
-		p.Site.Base.mutex.Lock()
+	http.HandleFunc(p.site.Root, func(w http.ResponseWriter, r *http.Request) {
+		p.site.base.mutex.Lock()
 		if p.Config.Reload() {
 			p.reset(true)
 		}
 
 		p.setCurrentInfo(r.URL.Path)
 		p.Template = p.CurrentController + p.currentFileName
-		p.Site.Base.mutex.Unlock()
+		p.site.base.mutex.Unlock()
 
 		p.routeController(i, w, r)
 	})

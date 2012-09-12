@@ -13,8 +13,8 @@ type templateCache struct {
 	Content string
 }
 
-type Site struct {
-	*Base
+type site struct {
+	*base
 	supportSession bool
 	templateFunc   template.FuncMap
 	templateCache  map[string]templateCache
@@ -23,13 +23,13 @@ type Site struct {
 	Version        string
 }
 
-func (s *Site) Init(w http.ResponseWriter, r *http.Request) *Site {
-	s.Base.Init(w, r)
+func (s *site) Init(w http.ResponseWriter, r *http.Request) *site {
+	s.base.Init(w, r)
 
 	return s
 }
 
-func (s *Site) AddTemplateFunc(name string, i interface{}) {
+func (s *site) AddTemplateFunc(name string, i interface{}) {
 	_, ok := s.templateFunc[name]
 	if !ok {
 		s.templateFunc[name] = i
@@ -38,13 +38,13 @@ func (s *Site) AddTemplateFunc(name string, i interface{}) {
 	}
 }
 
-func (s *Site) DelTemplateFunc(name string) {
+func (s *site) DelTemplateFunc(name string) {
 	if _, ok := s.templateFunc[name]; ok {
 		delete(s.templateFunc, name)
 	}
 }
 
-func (s *Site) SetTemplateCache(tmplKey, tmplPath string) {
+func (s *site) SetTemplateCache(tmplKey, tmplPath string) {
 	if tmplFi, err := os.Stat(tmplPath); err == nil {
 		if b, err := ioutil.ReadFile(tmplPath); err == nil {
 			s.templateCache[tmplKey] = templateCache{
@@ -56,7 +56,7 @@ func (s *Site) SetTemplateCache(tmplKey, tmplPath string) {
 
 }
 
-func (s *Site) GetTemplateCache(tmplKey string) templateCache {
+func (s *site) GetTemplateCache(tmplKey string) templateCache {
 	if tmpl, ok := s.templateCache[tmplKey]; ok {
 		return tmpl
 	}
@@ -64,6 +64,6 @@ func (s *Site) GetTemplateCache(tmplKey string) templateCache {
 	return templateCache{}
 }
 
-func (s *Site) DelTemplateCache(tmplKey string) {
+func (s *site) DelTemplateCache(tmplKey string) {
 	delete(s.templateCache, tmplKey)
 }

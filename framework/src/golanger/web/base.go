@@ -7,18 +7,18 @@ import (
 	"sync"
 )
 
-type Base struct {
+type base struct {
 	rmutex sync.RWMutex
 	mutex  sync.Mutex
 	header map[string][]string
 }
 
-func (b *Base) Init(w http.ResponseWriter, r *http.Request) *Base {
+func (b *base) Init(w http.ResponseWriter, r *http.Request) *base {
 
 	return b
 }
 
-func (b *Base) AddHeader(k, v string) {
+func (b *base) AddHeader(k, v string) {
 	if _, ok := b.header[k]; ok {
 		b.header[k] = append(b.header[k], v)
 	} else {
@@ -26,11 +26,11 @@ func (b *Base) AddHeader(k, v string) {
 	}
 }
 
-func (b *Base) DelHeader(k string) {
+func (b *base) DelHeader(k string) {
 	delete(b.header, k)
 }
 
-func (b *Base) getHttpGet(r *http.Request) map[string]string {
+func (b *base) getHttpGet(r *http.Request) map[string]string {
 	g := map[string]string{}
 	q := r.URL.Query()
 	for key, _ := range q {
@@ -40,7 +40,7 @@ func (b *Base) getHttpGet(r *http.Request) map[string]string {
 	return g
 }
 
-func (b *Base) getHttpPost(r *http.Request, MAX_FORM_SIZE int64) map[string]string {
+func (b *base) getHttpPost(r *http.Request, MAX_FORM_SIZE int64) map[string]string {
 	ct := r.Header.Get("Content-Type")
 	ct, _, _ = mime.ParseMediaType(ct)
 	if ct == "multipart/form-data" {
@@ -57,7 +57,7 @@ func (b *Base) getHttpPost(r *http.Request, MAX_FORM_SIZE int64) map[string]stri
 	return p
 }
 
-func (b *Base) getHttpCookie(r *http.Request) map[string]string {
+func (b *base) getHttpCookie(r *http.Request) map[string]string {
 	c := map[string]string{}
 	for _, ck := range r.Cookies() {
 		c[ck.Name], _ = url.QueryUnescape(ck.Value)
