@@ -1,8 +1,8 @@
 package models
 
 import (
-	. "golanger/database/activerecord"
-	. "golanger/middleware"
+	. "golanger.com/database/activerecord"
+	. "golanger.com/middleware"
 )
 
 type Images struct {

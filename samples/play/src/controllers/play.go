@@ -1,4 +1,3 @@
-
 // Use of this source code is governed by a GPLv3
 // license that can be found in the LICENSE file.
 
@@ -8,12 +7,12 @@ package controllers
 import (
 	"encoding/json"
 	"fmt"
+	"golanger.com/utils"
 	"io/ioutil"
 	"net/http"
 	"net/url"
-	"strings"
 	"regexp"
-	"golanger/utils"
+	"strings"
 )
 
 const (
@@ -43,13 +42,13 @@ func (p *PagePlay) Init() {
 func getCode(html []byte) []byte {
 	beginRegStr := `(?Usmi)<textarea(.*)>(.*)</textarea>`
 
-    beginRegex, _ := regexp.Compile(beginRegStr)
+	beginRegex, _ := regexp.Compile(beginRegStr)
 
-    pos := beginRegex.FindAllSubmatch(html, 1024)
-    if pos == nil {
+	pos := beginRegex.FindAllSubmatch(html, 1024)
+	if pos == nil {
 		fmt.Println("Nothing matched!")
-        return nil
-    }
+		return nil
+	}
 
 	return pos[0][2]
 }
@@ -65,18 +64,18 @@ func (p *PagePlay) Index() {
 	play := fmt.Sprintf(PLAY, id)
 
 	resp, err := http.Get(play)
-    if err != nil {
-       fmt.Println("Err: ", err)
-       return
-    }
-    defer resp.Body.Close()
+	if err != nil {
+		fmt.Println("Err: ", err)
+		return
+	}
+	defer resp.Body.Close()
 
 	buf, _ := ioutil.ReadAll(resp.Body)
 	body := utils.M{}
 	body["code"] = strings.TrimSpace(string(getCode(buf)))
-    if body["code"] == "" {
-        return
-    }
+	if body["code"] == "" {
+		return
+	}
 	p.Body = body
 }
 
@@ -125,11 +124,11 @@ func (p *PagePlay) Share() {
 		return
 	}
 
-    var data string
-    for key, _ := range p.R.Form {
-        data = key
-        break
-    }
+	var data string
+	for key, _ := range p.R.Form {
+		data = key
+		break
+	}
 	resp, err := http.Post(SHARE, p.R.Header.Get("Content-type"), strings.NewReader(data))
 
 	if err != nil {
@@ -143,4 +142,3 @@ func (p *PagePlay) Share() {
 	buf, _ := ioutil.ReadAll(resp.Body)
 	p.RW.Write(buf)
 }
-

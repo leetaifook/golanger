@@ -1,9 +1,9 @@
 package controllers
 
 import (
-	. "golanger/middleware"
-	"golanger/utils"
-	"golanger/web"
+	. "golanger.com/middleware"
+	"golanger.com/utils"
+	"golanger.com/web"
 	"helper"
 	"labix.org/v2/mgo/bson"
 	. "models"
