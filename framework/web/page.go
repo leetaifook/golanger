@@ -2,7 +2,7 @@ package web
 
 import (
 	"fmt"
-	"golanger/session"
+	"golanger.com/session"
 	"log"
 	"net/http"
 	"net/url"
